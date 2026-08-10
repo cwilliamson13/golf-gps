@@ -311,30 +311,6 @@
     );
   }
 
-  function formatToParHtml(diff) {
-    return (
-      '<span class="score-part ' +
-      scoreClassFromDiff(diff) +
-      '">' +
-      formatToPar(diff) +
-      "</span>"
-    );
-  }
-
-  function formatPairHtml(grossText, netText, grossDiff, netDiff) {
-    return (
-      '<span class="score-part ' +
-      scoreClassFromDiff(grossDiff) +
-      '">' +
-      grossText +
-      '</span> / <span class="score-part ' +
-      scoreClassFromDiff(netDiff) +
-      '">' +
-      netText +
-      "</span>"
-    );
-  }
-
   function bumpActivity() {
     clearTimeout(idleTimer);
     idleTimer = setTimeout(function () {
@@ -455,26 +431,14 @@
       els.roundTotal.textContent = "—";
       els.toPar.textContent = "E";
     } else if (hasHandicap()) {
-      els.roundTotal.innerHTML = formatPairHtml(
-        String(totals.strokes),
-        String(totals.net),
-        totals.strokes - totals.parPlayed,
-        totals.net - totals.parPlayed
-      );
-      els.toPar.innerHTML = formatPairHtml(
-        formatToPar(totals.strokes - totals.parPlayed),
-        formatToPar(totals.net - totals.parPlayed),
-        totals.strokes - totals.parPlayed,
-        totals.net - totals.parPlayed
-      );
+      els.roundTotal.textContent = totals.strokes + " / " + totals.net;
+      els.toPar.textContent =
+        formatToPar(totals.strokes - totals.parPlayed) +
+        " / " +
+        formatToPar(totals.net - totals.parPlayed);
     } else {
-      els.roundTotal.innerHTML =
-        '<span class="score-part ' +
-        scoreClassFromDiff(totals.strokes - totals.parPlayed) +
-        '">' +
-        totals.strokes +
-        "</span>";
-      els.toPar.innerHTML = formatToParHtml(totals.strokes - totals.parPlayed);
+      els.roundTotal.textContent = String(totals.strokes);
+      els.toPar.textContent = formatToPar(totals.strokes - totals.parPlayed);
     }
     els.openSummary.hidden = totals.scored === 0;
     if (totals.complete) {
@@ -640,26 +604,14 @@
       els.summaryTotal.textContent = "—";
       els.summaryToPar.textContent = "E";
     } else if (hasHandicap()) {
-      els.summaryTotal.innerHTML = formatPairHtml(
-        String(totals.strokes),
-        String(totals.net),
-        totals.strokes - totals.parPlayed,
-        totals.net - totals.parPlayed
-      );
-      els.summaryToPar.innerHTML = formatPairHtml(
-        formatToPar(totals.strokes - totals.parPlayed),
-        formatToPar(totals.net - totals.parPlayed),
-        totals.strokes - totals.parPlayed,
-        totals.net - totals.parPlayed
-      );
+      els.summaryTotal.textContent = totals.strokes + " / " + totals.net;
+      els.summaryToPar.textContent =
+        formatToPar(totals.strokes - totals.parPlayed) +
+        " / " +
+        formatToPar(totals.net - totals.parPlayed);
     } else {
-      els.summaryTotal.innerHTML =
-        '<span class="score-part ' +
-        scoreClassFromDiff(totals.strokes - totals.parPlayed) +
-        '">' +
-        totals.strokes +
-        "</span>";
-      els.summaryToPar.innerHTML = formatToParHtml(
+      els.summaryTotal.textContent = String(totals.strokes);
+      els.summaryToPar.textContent = formatToPar(
         totals.strokes - totals.parPlayed
       );
     }
@@ -692,39 +644,22 @@
         score == null
           ? "—"
           : hasHandicap()
-            ? formatPairHtml(
-                formatToPar(score - hole.par),
-                formatToPar(net - hole.par),
-                score - hole.par,
-                net - hole.par
-              )
-            : formatToParHtml(score - hole.par);
+            ? formatToPar(score - hole.par) + " / " + formatToPar(net - hole.par)
+            : formatToPar(score - hole.par);
       var runTotal =
         score == null
           ? "—"
           : hasHandicap()
-            ? formatPairHtml(
-                String(runScore),
-                String(runNet),
-                runScore - runPar,
-                runNet - runPar
-              )
-            : '<span class="score-part ' +
-              scoreClassFromDiff(runScore - runPar) +
-              '">' +
-              runScore +
-              "</span>";
+            ? runScore + " / " + runNet
+            : String(runScore);
       var runToPar =
         score == null
           ? "—"
           : hasHandicap()
-            ? formatPairHtml(
-                formatToPar(runScore - runPar),
-                formatToPar(runNet - runPar),
-                runScore - runPar,
-                runNet - runPar
-              )
-            : formatToParHtml(runScore - runPar);
+            ? formatToPar(runScore - runPar) +
+              " / " +
+              formatToPar(runNet - runPar)
+            : formatToPar(runScore - runPar);
       var row = document.createElement("button");
       row.type = "button";
       row.className = "summary-row";
