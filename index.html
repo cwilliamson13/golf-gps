@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
     />
     <meta name="theme-color" content="#1a3d2e" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -25,6 +25,8 @@
       <header class="top">
         <p class="brand" id="courseName">Golf GPS</p>
         <p class="hole-label" id="holeLabel">Hole 1</p>
+        <p class="to-par" id="toPar">E</p>
+        <p class="to-par-label">vs par</p>
       </header>
 
       <section class="distance-block">
@@ -58,11 +60,9 @@
             +
           </button>
         </div>
-        <p class="label">my score</p>
       </section>
 
       <p class="status" id="status">Waiting for GPS…</p>
-      <button type="button" class="gps-btn" id="refreshGps">Refresh GPS</button>
 
       <section class="scorecard" aria-label="Scorecard">
         <div class="scorecard-head">

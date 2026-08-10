@@ -18,11 +18,11 @@
     scoreMinus: document.getElementById("scoreMinus"),
     scorePlus: document.getElementById("scorePlus"),
     status: document.getElementById("status"),
-    refreshGps: document.getElementById("refreshGps"),
     prevHole: document.getElementById("prevHole"),
     nextHole: document.getElementById("nextHole"),
     scorecard: document.getElementById("scorecard"),
     roundTotal: document.getElementById("roundTotal"),
+    toPar: document.getElementById("toPar"),
   };
 
   function currentHole() {
@@ -122,13 +122,15 @@
     });
 
     var totals = roundTotals();
+    var toParText = "E";
     if (totals.scored === 0) {
-      els.roundTotal.textContent = "Tot —";
+      els.roundTotal.textContent = "—";
+      els.toPar.textContent = "E";
     } else {
       var toPar = totals.strokes - totals.parPlayed;
-      var toParText = toPar === 0 ? "E" : toPar > 0 ? "+" + toPar : String(toPar);
-      els.roundTotal.textContent =
-        "Tot " + totals.strokes + " (" + toParText + ")";
+      toParText = toPar === 0 ? "E" : toPar > 0 ? "+" + toPar : String(toPar);
+      els.roundTotal.textContent = totals.strokes + " (" + toParText + ")";
+      els.toPar.textContent = toParText;
     }
   }
 
@@ -189,20 +191,20 @@
     var messages = {
       1: "Location permission denied.",
       2: "Location unavailable.",
-      3: "Location timed out. Try Refresh GPS.",
+      3: "Location timed out. Waiting to retry…",
     };
     setStatus(messages[err.code] || "Unable to get location.");
   }
 
-  function requestGps() {
+  function startGpsWatch() {
     if (!navigator.geolocation) {
       setStatus("GPS not supported in this browser.");
       return;
     }
     setStatus("Getting GPS…");
-    navigator.geolocation.getCurrentPosition(onPosition, onGpsError, {
+    navigator.geolocation.watchPosition(onPosition, onGpsError, {
       enableHighAccuracy: true,
-      maximumAge: 0,
+      maximumAge: 2000,
       timeout: 20000,
     });
   }
@@ -219,7 +221,6 @@
   els.scorePlus.addEventListener("click", function () {
     adjustScore(1);
   });
-  els.refreshGps.addEventListener("click", requestGps);
 
   loadScores();
 
@@ -231,7 +232,7 @@
     .then(function (data) {
       course = data;
       render();
-      requestGps();
+      startGpsWatch();
     })
     .catch(function () {
       setStatus("Could not load course JSON.");
