@@ -142,7 +142,7 @@ body {
 }
 
 .tee-open {
-  display: inline-block;
+  display: block;
   margin: 0.4rem 0 0;
   padding: 0.3rem 0.55rem;
   border: 1px solid color-mix(in srgb, var(--muted) 28%, transparent);
@@ -156,7 +156,23 @@ body {
   cursor: pointer;
 }
 
-.tee-open:active {
+.hcp-open {
+  display: block;
+  margin: 0.35rem 0 0;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--muted) 28%, transparent);
+  border-radius: 0.35rem;
+  background: transparent;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--muted);
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+
+.tee-open:active,
+.hcp-open:active {
   background: color-mix(in srgb, var(--bg-light) 35%, transparent);
 }
 
@@ -393,7 +409,7 @@ body {
 }
 
 .hole-cell-score {
-  font-size: 1.6rem;
+  font-size: 1.35rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
@@ -469,6 +485,16 @@ body {
   color: var(--text);
 }
 
+.summary-hcp {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.summary-hcp[hidden] {
+  display: none;
+}
+
 .summary-holes {
   margin-top: 1rem;
   display: grid;
@@ -520,14 +546,68 @@ body {
 .summary-hole-nums,
 .summary-run-nums {
   display: grid;
-  grid-template-columns: 2rem 2.35rem;
+  grid-template-columns: minmax(2.75rem, auto) 2.35rem;
   gap: 0.35rem;
   text-align: right;
+  align-items: center;
 }
 
 .summary-run-nums {
   padding-left: 0.85rem;
   border-left: 1px solid color-mix(in srgb, var(--muted) 35%, transparent);
+}
+
+.hcp-sheet {
+  text-align: left;
+}
+
+.hcp-hint {
+  margin: 0.75rem 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.hcp-sign {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+}
+
+.hcp-sign-btn {
+  min-height: 2.75rem;
+  border: 1px solid color-mix(in srgb, var(--muted) 35%, transparent);
+  border-radius: 0.5rem;
+  background: transparent;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hcp-sign-btn.is-active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-mid));
+  color: var(--accent);
+}
+
+.hcp-input {
+  width: 100%;
+  margin-bottom: 0.75rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--bg-deep) 55%, transparent);
+  color: var(--text);
+  font: inherit;
+  font-size: 1.35rem;
+}
+
+.hcp-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 .summary-actions {

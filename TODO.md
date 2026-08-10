@@ -11,6 +11,7 @@
 
 - [x] Offline service worker cache
 - [x] Tee selection (button → options sheet)
+- [x] Handicap (18-hole integer, ±, halved for 9; gross/net + stroke ★)
 - [x] Round summary with running total & running +/-
 - [x] Haptics / score pulse
 - [x] Score vs-par colors

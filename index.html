@@ -34,6 +34,7 @@
             <p class="hole-meta" id="holeMeta">Hcp 4 · 343 yd</p>
             <p class="gps-status" id="status">Waiting for GPS…</p>
             <button type="button" class="tee-open" id="teeOpen">Blue tees</button>
+            <button type="button" class="hcp-open" id="hcpOpen">HCP —</button>
           </div>
           <div class="top-right">
             <p class="round-total" id="roundTotal">—</p>
@@ -92,6 +93,7 @@
         <p class="summary-kicker" id="summaryCourse">Round complete</p>
         <p class="summary-total" id="summaryTotal">—</p>
         <p class="summary-topar" id="summaryToPar">E</p>
+        <p class="summary-hcp" id="summaryHcp" hidden></p>
         <div class="summary-holes" id="summaryHoles"></div>
         <div class="summary-actions">
           <button type="button" class="nav-btn" id="summaryShare">Copy summary</button>
@@ -108,6 +110,38 @@
         <p class="pad-title">Select tee</p>
         <div class="tee-options" id="teeOptions"></div>
         <button type="button" class="pad-action pad-done" id="teeClose">Done</button>
+      </div>
+    </div>
+
+    <div class="pad" id="hcpPad" hidden>
+      <div class="pad-sheet hcp-sheet">
+        <p class="pad-title">Handicap</p>
+        <p class="hcp-hint">
+          Enter your 18-hole handicap. Strokes are halved for this 9-hole course.
+        </p>
+        <div class="hcp-sign" role="group" aria-label="Handicap type">
+          <button type="button" class="hcp-sign-btn is-active" data-hcp-sign="minus">
+            − Handicap
+          </button>
+          <button type="button" class="hcp-sign-btn" data-hcp-sign="plus">
+            + Handicap
+          </button>
+        </div>
+        <input
+          id="hcpInput"
+          class="hcp-input"
+          type="number"
+          inputmode="numeric"
+          step="1"
+          min="0"
+          max="54"
+          placeholder="—"
+        />
+        <div class="pad-actions">
+          <button type="button" class="pad-action" id="hcpClear">Clear</button>
+          <button type="button" class="pad-action pad-done" id="hcpSave">Save</button>
+        </div>
+        <button type="button" class="pad-action" id="hcpClose">Cancel</button>
       </div>
     </div>
 

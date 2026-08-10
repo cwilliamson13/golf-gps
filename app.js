@@ -53,12 +53,15 @@
   var SCORE_KEY = "golf-gps-scores-olde-salem-greens";
   var COLLAPSE_KEY = "golf-gps-scorecard-collapsed";
   var TEE_KEY = "golf-gps-tee-olde-salem-greens";
+  var HCP_KEY = "golf-gps-handicap-v2";
   var EARTH_RADIUS_YARDS = 6371000 / 0.9144;
   var IDLE_MS = 5 * 60 * 1000;
 
   var course = null;
   var holeIndex = 0;
   var selectedTee = localStorage.getItem(TEE_KEY) || "blue";
+  var handicap18 = null;
+  var handicapPlus = false;
   var you = null;
   var scores = {};
   var padDigits = "";
@@ -75,6 +78,7 @@
     holeScore: document.getElementById("holeScore"),
     holeMeta: document.getElementById("holeMeta"),
     teeOpen: document.getElementById("teeOpen"),
+    hcpOpen: document.getElementById("hcpOpen"),
     distanceMid: document.getElementById("distanceMid"),
     distanceFront: document.getElementById("distanceFront"),
     distanceBack: document.getElementById("distanceBack"),
@@ -98,15 +102,84 @@
     teePad: document.getElementById("teePad"),
     teeOptions: document.getElementById("teeOptions"),
     teeClose: document.getElementById("teeClose"),
+    hcpPad: document.getElementById("hcpPad"),
+    hcpInput: document.getElementById("hcpInput"),
+    hcpSave: document.getElementById("hcpSave"),
+    hcpClear: document.getElementById("hcpClear"),
+    hcpClose: document.getElementById("hcpClose"),
     summaryView: document.getElementById("summaryView"),
     summaryCourse: document.getElementById("summaryCourse"),
     summaryTotal: document.getElementById("summaryTotal"),
     summaryToPar: document.getElementById("summaryToPar"),
+    summaryHcp: document.getElementById("summaryHcp"),
     summaryHoles: document.getElementById("summaryHoles"),
     summaryShare: document.getElementById("summaryShare"),
     summaryClose: document.getElementById("summaryClose"),
     summaryNewRound: document.getElementById("summaryNewRound"),
   };
+
+  function loadHandicap() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(HCP_KEY) || "null");
+      if (!raw || typeof raw.value !== "number") {
+        handicap18 = null;
+        handicapPlus = false;
+        return;
+      }
+      handicap18 = Math.max(0, Math.min(54, Math.round(raw.value)));
+      handicapPlus = !!raw.plus;
+    } catch (e) {
+      handicap18 = null;
+      handicapPlus = false;
+    }
+  }
+
+  function saveHandicap() {
+    if (handicap18 == null) localStorage.removeItem(HCP_KEY);
+    else
+      localStorage.setItem(
+        HCP_KEY,
+        JSON.stringify({ value: handicap18, plus: handicapPlus })
+      );
+  }
+
+  function hasHandicap() {
+    return handicap18 != null && handicap18 > 0;
+  }
+
+  /** 9-hole strokes from 18-hole handicap. */
+  function courseHandicap9() {
+    if (!hasHandicap()) return 0;
+    return Math.round(handicap18 / 2);
+  }
+
+  function strokesOnHole(hole) {
+    var n = courseHandicap9();
+    if (n <= 0) return 0;
+    var full = Math.floor(n / 9);
+    var rem = n % 9;
+    if (!handicapPlus) {
+      return full + (hole.handicap <= rem ? 1 : 0);
+    }
+    return full + (hole.handicap > 9 - rem ? 1 : 0);
+  }
+
+  function netScore(gross, hole) {
+    if (gross == null) return null;
+    var s = strokesOnHole(hole);
+    return handicapPlus ? gross + s : gross - s;
+  }
+
+  function formatScore(gross, hole) {
+    if (gross == null) return "—";
+    var s = strokesOnHole(hole);
+    if (!hasHandicap() || s === 0) return String(gross);
+    return gross + " / " + netScore(gross, hole);
+  }
+
+  function holeStar(hole) {
+    return hasHandicap() && strokesOnHole(hole) > 0 ? " ★" : "";
+  }
 
   function haptic(ms) {
     if (navigator.vibrate) navigator.vibrate(ms || 12);
@@ -181,21 +254,25 @@
 
   function roundTotals() {
     var strokes = 0;
+    var net = 0;
     var scored = 0;
     var parPlayed = 0;
     course.holes.forEach(function (hole) {
       var score = getScore(hole.number);
       if (score != null) {
         strokes += score;
+        net += netScore(score, hole);
         scored += 1;
         parPlayed += hole.par;
       }
     });
     return {
       strokes: strokes,
+      net: net,
       scored: scored,
       parPlayed: parPlayed,
       complete: scored === course.holes.length,
+      ch9: courseHandicap9(),
     };
   }
 
@@ -258,6 +335,36 @@
     els.teeOpen.textContent = teeLabel(selectedTee);
   }
 
+  function updateHcpButton() {
+    if (!hasHandicap()) {
+      els.hcpOpen.textContent = "HCP —";
+      return;
+    }
+    var sign = handicapPlus ? "+" : "−";
+    els.hcpOpen.textContent =
+      "HCP " + sign + handicap18 + " · " + courseHandicap9() + " strokes";
+  }
+
+  function updateHcpSignButtons() {
+    document.querySelectorAll("[data-hcp-sign]").forEach(function (btn) {
+      var plus = btn.getAttribute("data-hcp-sign") === "plus";
+      btn.classList.toggle("is-active", plus === handicapPlus);
+    });
+  }
+
+  function openHcpPad() {
+    els.hcpInput.value = handicap18 != null ? String(handicap18) : "";
+    updateHcpSignButtons();
+    els.hcpPad.hidden = false;
+    setTimeout(function () {
+      els.hcpInput.focus();
+    }, 50);
+  }
+
+  function closeHcpPad() {
+    els.hcpPad.hidden = true;
+  }
+
   function renderTeeOptions() {
     els.teeOptions.innerHTML = "";
     Object.keys(course.tees).forEach(function (tee) {
@@ -296,6 +403,12 @@
     if (totals.scored === 0) {
       els.roundTotal.textContent = "—";
       els.toPar.textContent = "E";
+    } else if (hasHandicap()) {
+      els.roundTotal.textContent = totals.strokes + " / " + totals.net;
+      els.toPar.textContent =
+        formatToPar(totals.strokes - totals.parPlayed) +
+        " / " +
+        formatToPar(totals.net - totals.parPlayed);
     } else {
       els.roundTotal.textContent = String(totals.strokes);
       els.toPar.textContent = formatToPar(totals.strokes - totals.parPlayed);
@@ -348,9 +461,10 @@
       btn.innerHTML =
         '<span class="hole-cell-num">Hole ' +
         hole.number +
+        holeStar(hole) +
         "</span>" +
         '<span class="hole-cell-score">' +
-        (score != null ? score : "—") +
+        formatScore(score, hole) +
         "</span>" +
         '<span class="hole-cell-par">Par ' +
         hole.par +
@@ -375,12 +489,14 @@
     var score = getScore(hole.number);
 
     els.courseName.textContent = course.name;
-    els.holeLabel.textContent = "Hole " + hole.number + " · Par " + hole.par;
-    els.holeScore.textContent = score != null ? String(score) : "—";
+    els.holeLabel.textContent =
+      "Hole " + hole.number + holeStar(hole) + " · Par " + hole.par;
+    els.holeScore.textContent = formatScore(score, hole);
     els.holeScore.className =
       "hole-score" + (score != null ? " " + scoreClass(score, hole.par) : "");
     els.holeMeta.textContent = "Hcp " + hole.handicap + " · " + yards + " yd";
     updateTeeButton();
+    updateHcpButton();
 
     els.distanceMid.textContent = formatDistance(distanceYards(you, hole.middle));
     els.distanceFront.textContent = formatDistance(distanceYards(you, hole.front));
@@ -445,20 +561,46 @@
   function openSummary() {
     var totals = roundTotals();
     els.summaryCourse.textContent = course.name;
-    els.summaryTotal.textContent = totals.scored ? String(totals.strokes) : "—";
-    els.summaryToPar.textContent = totals.scored
-      ? formatToPar(totals.strokes - totals.parPlayed)
-      : "E";
+    if (!totals.scored) {
+      els.summaryTotal.textContent = "—";
+      els.summaryToPar.textContent = "E";
+    } else if (hasHandicap()) {
+      els.summaryTotal.textContent = totals.strokes + " / " + totals.net;
+      els.summaryToPar.textContent =
+        formatToPar(totals.strokes - totals.parPlayed) +
+        " / " +
+        formatToPar(totals.net - totals.parPlayed);
+    } else {
+      els.summaryTotal.textContent = String(totals.strokes);
+      els.summaryToPar.textContent = formatToPar(totals.strokes - totals.parPlayed);
+    }
+
+    if (hasHandicap()) {
+      els.summaryHcp.hidden = false;
+      els.summaryHcp.textContent =
+        (handicapPlus ? "+" : "−") +
+        handicap18 +
+        " (18) · " +
+        courseHandicap9() +
+        " strokes this 9";
+    } else {
+      els.summaryHcp.hidden = true;
+    }
 
     els.summaryHoles.innerHTML = "";
     var runScore = 0;
     var runPar = 0;
     course.holes.forEach(function (hole, index) {
       var score = getScore(hole.number);
+      var net = netScore(score, hole);
       if (score != null) {
         runScore += score;
         runPar += hole.par;
       }
+      var holeToPar =
+        score == null
+          ? "—"
+          : formatToPar((hasHandicap() ? net : score) - hole.par);
       var row = document.createElement("button");
       row.type = "button";
       row.className = "summary-row " + scoreClass(score, hole.par);
@@ -466,6 +608,7 @@
         '<div class="summary-main">' +
         "<strong>Hole " +
         hole.number +
+        holeStar(hole) +
         "</strong>" +
         "<span>Par " +
         hole.par +
@@ -474,10 +617,10 @@
         '<div class="summary-nums">' +
         '<span class="summary-hole-nums">' +
         "<span>" +
-        (score != null ? score : "—") +
+        formatScore(score, hole) +
         "</span>" +
         "<span>" +
-        (score != null ? formatToPar(score - hole.par) : "—") +
+        holeToPar +
         "</span>" +
         "</span>" +
         '<span class="summary-run-nums">' +
@@ -510,15 +653,30 @@
 
   function summaryText() {
     var totals = roundTotals();
-    var lines = [
-      course.name,
-      "Total " +
-        totals.strokes +
-        " (" +
-        formatToPar(totals.strokes - totals.parPlayed) +
-        ")",
-      "",
-    ];
+    var lines = [course.name];
+    if (hasHandicap()) {
+      lines.push(
+        "Gross " +
+          totals.strokes +
+          " / Net " +
+          totals.net +
+          " · HCP " +
+          (handicapPlus ? "+" : "−") +
+          handicap18 +
+          " · " +
+          courseHandicap9() +
+          " strokes"
+      );
+    } else {
+      lines.push(
+        "Total " +
+          totals.strokes +
+          " (" +
+          formatToPar(totals.strokes - totals.parPlayed) +
+          ")"
+      );
+    }
+    lines.push("");
     var runScore = 0;
     var runPar = 0;
     course.holes.forEach(function (hole) {
@@ -530,10 +688,11 @@
       lines.push(
         "Hole " +
           hole.number +
+          holeStar(hole) +
           "  Par " +
           hole.par +
           "  " +
-          (score != null ? score : "—") +
+          formatScore(score, hole) +
           (score != null
             ? "  running " +
               runScore +
@@ -611,6 +770,45 @@
   els.teePad.addEventListener("click", function (event) {
     if (event.target === els.teePad) closeTeePad();
   });
+  els.hcpOpen.addEventListener("click", function () {
+    bumpActivity();
+    openHcpPad();
+  });
+  els.hcpClose.addEventListener("click", closeHcpPad);
+  els.hcpPad.addEventListener("click", function (event) {
+    if (event.target === els.hcpPad) closeHcpPad();
+  });
+  document.querySelectorAll("[data-hcp-sign]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      handicapPlus = btn.getAttribute("data-hcp-sign") === "plus";
+      updateHcpSignButtons();
+      haptic(6);
+    });
+  });
+  els.hcpSave.addEventListener("click", function () {
+    var value = parseInt(els.hcpInput.value, 10);
+    if (els.hcpInput.value.trim() === "" || isNaN(value)) {
+      handicap18 = null;
+      handicapPlus = false;
+    } else {
+      handicap18 = Math.max(0, Math.min(54, value));
+    }
+    saveHandicap();
+    haptic(12);
+    closeHcpPad();
+    render();
+    if (!els.summaryView.hidden) openSummary();
+  });
+  els.hcpClear.addEventListener("click", function () {
+    handicap18 = null;
+    handicapPlus = false;
+    saveHandicap();
+    els.hcpInput.value = "";
+    haptic(8);
+    closeHcpPad();
+    render();
+    if (!els.summaryView.hidden) openSummary();
+  });
   els.padClear.addEventListener("click", function () {
     padDigits = "";
     els.padValue.textContent = "—";
@@ -664,6 +862,7 @@
 
   buildPadKeys();
   loadScores();
+  loadHandicap();
   if (["gold", "blue", "white", "red"].indexOf(selectedTee) === -1) {
     selectedTee = "blue";
   }
