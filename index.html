@@ -22,39 +22,40 @@
   </head>
   <body>
     <main class="shell">
-      <header class="top">
-        <div class="top-left">
-          <p class="brand" id="courseName">Golf GPS</p>
-          <p class="hole-label" id="holeLabel">Hole 1</p>
-          <p class="hole-meta" id="holeMeta">Par 4 · 343 yd</p>
-        </div>
-        <div class="top-right">
-          <p class="round-total" id="roundTotal">—</p>
-          <p class="to-par" id="toPar">E</p>
-        </div>
-      </header>
-
-      <section class="distance-block">
-        <p class="distance" id="distanceMid">—</p>
-        <p class="label">yards to middle</p>
-        <div class="pin-row">
-          <div>
-            <span class="pin-val" id="distanceFront">—</span>
-            <span class="pin-name">Front</span>
+      <div class="play-area">
+        <header class="top">
+          <div class="top-left">
+            <p class="brand" id="courseName">Golf GPS</p>
+            <p class="hole-label" id="holeLabel">Hole 1</p>
+            <p class="hole-meta" id="holeMeta">Hcp 4 · 343 yd</p>
+            <p class="gps-status" id="status">Waiting for GPS…</p>
           </div>
-          <div>
-            <span class="pin-val" id="distanceBack">—</span>
-            <span class="pin-name">Back</span>
+          <div class="top-right">
+            <p class="round-total" id="roundTotal">—</p>
+            <p class="to-par" id="toPar">E</p>
           </div>
-        </div>
-      </section>
+        </header>
 
-      <div class="hole-nav">
-        <button type="button" class="nav-btn" id="prevHole">Prev</button>
-        <button type="button" class="nav-btn" id="nextHole">Next</button>
+        <section class="distance-block">
+          <p class="distance" id="distanceMid">—</p>
+          <p class="label">yards to middle</p>
+          <div class="pin-row">
+            <div>
+              <span class="pin-val" id="distanceFront">—</span>
+              <span class="pin-name">Front</span>
+            </div>
+            <div>
+              <span class="pin-val" id="distanceBack">—</span>
+              <span class="pin-name">Back</span>
+            </div>
+          </div>
+        </section>
+
+        <div class="hole-nav">
+          <button type="button" class="nav-btn" id="prevHole">Prev</button>
+          <button type="button" class="nav-btn" id="nextHole">Next</button>
+        </div>
       </div>
-
-      <p class="status" id="status">Waiting for GPS…</p>
 
       <section class="scorecard" id="scorecardSection" aria-label="Scorecard">
         <button type="button" class="scorecard-toggle" id="scorecardToggle">
