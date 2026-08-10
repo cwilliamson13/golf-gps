@@ -32,26 +32,14 @@
               <p class="hole-score" id="holeScore">—</p>
             </div>
             <p class="hole-meta" id="holeMeta">Hcp 4 · 343 yd</p>
+            <button type="button" class="tee-open" id="teeOpen">Blue tees</button>
             <p class="gps-status" id="status">Waiting for GPS…</p>
-            <p class="pins-note" id="pinsNote"></p>
           </div>
           <div class="top-right">
             <p class="round-total" id="roundTotal">—</p>
             <p class="to-par" id="toPar">E</p>
           </div>
         </header>
-
-        <div class="tee-row" id="teeRow" role="group" aria-label="Tee"></div>
-
-        <div class="hole-suggest" id="holeSuggest" hidden>
-          <p class="hole-suggest-text" id="holeSuggestText"></p>
-          <div class="hole-suggest-actions">
-            <button type="button" class="suggest-btn" id="holeSuggestYes">Switch</button>
-            <button type="button" class="suggest-btn suggest-dismiss" id="holeSuggestNo">
-              Dismiss
-            </button>
-          </div>
-        </div>
 
         <section class="distance-block">
           <p class="distance" id="distanceMid">—</p>
@@ -104,6 +92,9 @@
         <p class="summary-kicker" id="summaryCourse">Round complete</p>
         <p class="summary-total" id="summaryTotal">—</p>
         <p class="summary-topar" id="summaryToPar">E</p>
+        <div class="summary-head">
+          <span>Hole</span><span>Par</span><span>Score</span><span>Tot</span><span>+/−</span>
+        </div>
         <div class="summary-holes" id="summaryHoles"></div>
         <div class="summary-actions">
           <button type="button" class="nav-btn" id="summaryShare">Copy summary</button>
@@ -114,6 +105,14 @@
         </div>
       </div>
     </section>
+
+    <div class="pad" id="teePad" hidden>
+      <div class="pad-sheet">
+        <p class="pad-title">Select tee</p>
+        <div class="tee-options" id="teeOptions"></div>
+        <button type="button" class="pad-action pad-done" id="teeClose">Done</button>
+      </div>
+    </div>
 
     <div class="pad" id="scorePad" hidden>
       <div class="pad-sheet">
