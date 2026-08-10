@@ -27,7 +27,10 @@
           <div class="top-left">
             <p class="brand" id="courseName">Golf GPS</p>
             <p class="hole-label" id="holeLabel">Hole 1</p>
-            <p class="hole-score" id="holeScore">—</p>
+            <div class="hole-score-wrap">
+              <p class="hole-score-label">This hole</p>
+              <p class="hole-score" id="holeScore">—</p>
+            </div>
             <p class="hole-meta" id="holeMeta">Hcp 4 · 343 yd</p>
             <p class="gps-status" id="status">Waiting for GPS…</p>
           </div>
@@ -52,9 +55,19 @@
           </div>
         </section>
 
-        <div class="hole-nav">
-          <button type="button" class="nav-btn" id="prevHole">Prev</button>
-          <button type="button" class="nav-btn" id="nextHole">Next</button>
+        <div class="controls">
+          <div class="score-quick" role="group" aria-label="Quick score">
+            <button type="button" class="score-quick-btn" data-score-action="dec">−</button>
+            <button type="button" class="score-quick-btn" data-score-action="birdie">−1</button>
+            <button type="button" class="score-quick-btn" data-score-action="par">E</button>
+            <button type="button" class="score-quick-btn" data-score-action="bogey">+1</button>
+            <button type="button" class="score-quick-btn" data-score-action="double">+2</button>
+            <button type="button" class="score-quick-btn" data-score-action="inc">+</button>
+          </div>
+          <div class="hole-nav">
+            <button type="button" class="nav-btn" id="prevHole">Prev</button>
+            <button type="button" class="nav-btn" id="nextHole">Next</button>
+          </div>
         </div>
       </div>
 

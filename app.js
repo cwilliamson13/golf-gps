@@ -248,6 +248,49 @@
     renderScorecard();
   }
 
+  function applyScore(value) {
+    var hole = currentHole();
+    if (value == null || value < 1) {
+      setScore(hole.number, null);
+    } else {
+      setScore(hole.number, Math.min(15, value));
+    }
+    render();
+  }
+
+  function quickScore(action) {
+    var hole = currentHole();
+    var current = getScore(hole.number);
+    var par = hole.par;
+
+    if (action === "dec") {
+      if (current == null) applyScore(par - 1);
+      else if (current <= 1) applyScore(null);
+      else applyScore(current - 1);
+      return;
+    }
+    if (action === "inc") {
+      if (current == null) applyScore(par + 1);
+      else applyScore(current + 1);
+      return;
+    }
+    if (action === "birdie") {
+      applyScore(Math.max(1, par - 1));
+      return;
+    }
+    if (action === "par") {
+      applyScore(par);
+      return;
+    }
+    if (action === "bogey") {
+      applyScore(par + 1);
+      return;
+    }
+    if (action === "double") {
+      applyScore(par + 2);
+    }
+  }
+
   function cycleHole(step) {
     holeIndex = (holeIndex + step + course.holes.length) % course.holes.length;
     render();
@@ -317,6 +360,11 @@
   });
   els.nextHole.addEventListener("click", function () {
     cycleHole(1);
+  });
+  document.querySelectorAll("[data-score-action]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      quickScore(btn.getAttribute("data-score-action"));
+    });
   });
   els.scorecardToggle.addEventListener("click", function () {
     scorecardCollapsed = !scorecardCollapsed;

@@ -87,8 +87,20 @@ body {
   color: var(--text);
 }
 
+.hole-score-wrap {
+  margin-top: 0.4rem;
+}
+
+.hole-score-label {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 .hole-score {
-  margin: 0.35rem 0 0;
+  margin: 0.15rem 0 0;
   font-size: 1.75rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -177,13 +189,40 @@ body {
   color: var(--muted);
 }
 
+.controls {
+  margin-top: auto;
+  padding-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.score-quick {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.score-quick-btn {
+  min-height: 3rem;
+  padding: 0.4rem 0.15rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--bg-light) 50%, transparent);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.score-quick-btn:active {
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-mid));
+}
+
 .hole-nav {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
   width: 100%;
-  margin-top: auto;
-  padding-bottom: 0.5rem;
 }
 
 .nav-btn,
@@ -192,6 +231,7 @@ body {
 .clear-round,
 .pad-key,
 .pad-action,
+.score-quick-btn,
 .hole-score {
   font: inherit;
   color: inherit;
@@ -213,7 +253,8 @@ body {
 .nav-btn:active,
 .hole-cell:active,
 .pad-key:active,
-.pad-action:active {
+.pad-action:active,
+.score-quick-btn:active {
   background: color-mix(in srgb, var(--accent) 22%, var(--bg-mid));
 }
 
