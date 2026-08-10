@@ -65,6 +65,7 @@
   var you = null;
   var scores = {};
   var padDigits = "";
+  var padReplaceOnType = false;
   var scorecardCollapsed = localStorage.getItem(COLLAPSE_KEY) === "1";
   var gpsWatchId = null;
   var gpsPaused = false;
@@ -424,6 +425,7 @@
     var hole = currentHole();
     var score = getScore(hole.number);
     padDigits = score != null ? String(score) : "";
+    padReplaceOnType = score != null;
     els.padTitle.textContent = "Hole " + hole.number;
     els.padValue.textContent = padDigits || "—";
     els.scorePad.hidden = false;
@@ -589,18 +591,36 @@
 
     els.summaryHoles.innerHTML = "";
     var runScore = 0;
+    var runNet = 0;
     var runPar = 0;
     course.holes.forEach(function (hole, index) {
       var score = getScore(hole.number);
       var net = netScore(score, hole);
       if (score != null) {
         runScore += score;
+        runNet += net;
         runPar += hole.par;
       }
       var holeToPar =
         score == null
           ? "—"
-          : formatToPar((hasHandicap() ? net : score) - hole.par);
+          : hasHandicap()
+            ? formatToPar(score - hole.par) + " / " + formatToPar(net - hole.par)
+            : formatToPar(score - hole.par);
+      var runTotal =
+        score == null
+          ? "—"
+          : hasHandicap()
+            ? runScore + " / " + runNet
+            : String(runScore);
+      var runToPar =
+        score == null
+          ? "—"
+          : hasHandicap()
+            ? formatToPar(runScore - runPar) +
+              " / " +
+              formatToPar(runNet - runPar)
+            : formatToPar(runScore - runPar);
       var row = document.createElement("button");
       row.type = "button";
       row.className = "summary-row " + scoreClass(score, hole.par);
@@ -625,10 +645,10 @@
         "</span>" +
         '<span class="summary-run-nums">' +
         "<span>" +
-        (score != null ? runScore : "—") +
+        runTotal +
         "</span>" +
         "<span>" +
-        (score != null ? formatToPar(runScore - runPar) : "—") +
+        runToPar +
         "</span>" +
         "</span>" +
         "</div>";
@@ -678,29 +698,46 @@
     }
     lines.push("");
     var runScore = 0;
+    var runNet = 0;
     var runPar = 0;
     course.holes.forEach(function (hole) {
       var score = getScore(hole.number);
+      var net = netScore(score, hole);
       if (score != null) {
         runScore += score;
+        runNet += net;
         runPar += hole.par;
       }
-      lines.push(
+      var holeLine =
         "Hole " +
-          hole.number +
-          holeStar(hole) +
-          "  Par " +
-          hole.par +
+        hole.number +
+        holeStar(hole) +
+        "  Par " +
+        hole.par +
+        "  " +
+        formatScore(score, hole);
+      if (score != null) {
+        holeLine +=
           "  " +
-          formatScore(score, hole) +
-          (score != null
-            ? "  running " +
-              runScore +
+          (hasHandicap()
+            ? formatToPar(score - hole.par) +
+              " / " +
+              formatToPar(net - hole.par)
+            : formatToPar(score - hole.par));
+        holeLine +=
+          "  running " +
+          (hasHandicap()
+            ? runScore +
+              " / " +
+              runNet +
               " (" +
               formatToPar(runScore - runPar) +
+              " / " +
+              formatToPar(runNet - runPar) +
               ")"
-            : "")
-      );
+            : runScore + " (" + formatToPar(runScore - runPar) + ")");
+      }
+      lines.push(holeLine);
     });
     return lines.join("\n");
   }
@@ -723,8 +760,13 @@
       btn.className = "pad-key";
       btn.textContent = String(key);
       btn.addEventListener("click", function () {
-        if (padDigits.length >= 2) return;
-        padDigits += String(key);
+        if (padReplaceOnType) {
+          padDigits = String(key);
+          padReplaceOnType = false;
+        } else {
+          if (padDigits.length >= 2) return;
+          padDigits += String(key);
+        }
         if (parseInt(padDigits, 10) > 15) padDigits = "15";
         els.padValue.textContent = padDigits;
         haptic(6);
@@ -811,6 +853,7 @@
   });
   els.padClear.addEventListener("click", function () {
     padDigits = "";
+    padReplaceOnType = false;
     els.padValue.textContent = "—";
     haptic(8);
   });
