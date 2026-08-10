@@ -5,6 +5,7 @@
 - [ ] **Hole suggest near tee box** — prompt to switch holes when GPS is near another hole’s tee (not the green). Needs tee-box coordinates in course JSON.
 - [ ] **Elevation / plays-like** — USGS 3DEP lookup at player + pin; show adjusted yardage.
 - [ ] **Wind** — weather API (e.g. Open-Meteo) for speed/direction; optional carry hint.
+- [ ] **handicap logic**
 
 ## Done recently
 

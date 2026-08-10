@@ -53,14 +53,12 @@
   var SCORE_KEY = "golf-gps-scores-olde-salem-greens";
   var COLLAPSE_KEY = "golf-gps-scorecard-collapsed";
   var TEE_KEY = "golf-gps-tee-olde-salem-greens";
-  var HCP_KEY = "golf-gps-handicap-index";
   var EARTH_RADIUS_YARDS = 6371000 / 0.9144;
   var IDLE_MS = 5 * 60 * 1000;
 
   var course = null;
   var holeIndex = 0;
   var selectedTee = localStorage.getItem(TEE_KEY) || "blue";
-  var handicapIndex = loadHandicapIndex();
   var you = null;
   var scores = {};
   var padDigits = "";
@@ -77,7 +75,6 @@
     holeScore: document.getElementById("holeScore"),
     holeMeta: document.getElementById("holeMeta"),
     teeOpen: document.getElementById("teeOpen"),
-    hcpOpen: document.getElementById("hcpOpen"),
     distanceMid: document.getElementById("distanceMid"),
     distanceFront: document.getElementById("distanceFront"),
     distanceBack: document.getElementById("distanceBack"),
@@ -101,34 +98,15 @@
     teePad: document.getElementById("teePad"),
     teeOptions: document.getElementById("teeOptions"),
     teeClose: document.getElementById("teeClose"),
-    hcpPad: document.getElementById("hcpPad"),
-    hcpInput: document.getElementById("hcpInput"),
-    hcpSave: document.getElementById("hcpSave"),
-    hcpClear: document.getElementById("hcpClear"),
-    hcpClose: document.getElementById("hcpClose"),
-    hcpHint: document.getElementById("hcpHint"),
     summaryView: document.getElementById("summaryView"),
     summaryCourse: document.getElementById("summaryCourse"),
     summaryTotal: document.getElementById("summaryTotal"),
     summaryToPar: document.getElementById("summaryToPar"),
-    summaryNet: document.getElementById("summaryNet"),
     summaryHoles: document.getElementById("summaryHoles"),
     summaryShare: document.getElementById("summaryShare"),
     summaryClose: document.getElementById("summaryClose"),
     summaryNewRound: document.getElementById("summaryNewRound"),
   };
-
-  function loadHandicapIndex() {
-    var raw = localStorage.getItem(HCP_KEY);
-    if (raw == null || raw === "") return null;
-    var value = parseFloat(raw);
-    return isNaN(value) ? null : value;
-  }
-
-  function saveHandicapIndex(value) {
-    if (value == null) localStorage.removeItem(HCP_KEY);
-    else localStorage.setItem(HCP_KEY, String(value));
-  }
 
   function haptic(ms) {
     if (navigator.vibrate) navigator.vibrate(ms || 12);
@@ -150,36 +128,6 @@
 
   function teeYards(hole) {
     return hole.yards[selectedTee] || hole.yards[course.defaultTee] || hole.yards.blue;
-  }
-
-  function selectedTeeInfo() {
-    return course.tees[selectedTee] || course.tees[course.defaultTee];
-  }
-
-  /**
-   * 9-hole Course Handicap from 18-hole Handicap Index,
-   * using this tee's 9-hole rating/slope/par.
-   */
-  function courseHandicap9() {
-    if (handicapIndex == null || !course) return 0;
-    var tee = selectedTeeInfo();
-    if (!tee) return Math.round(handicapIndex / 2);
-    var slope = tee.slopeMen || 113;
-    var rating = tee.ratingMen;
-    var par = course.totalPar;
-    if (rating == null) return Math.round(handicapIndex / 2);
-    return Math.round(handicapIndex * (slope / 113) + (rating - par));
-  }
-
-  /** Strokes received on a hole from 9-hole course handicap + stroke index. */
-  function strokesOnHole(hole) {
-    var ch = courseHandicap9();
-    if (ch <= 0) return 0;
-    var fullCycles = Math.floor(ch / 9);
-    var remainder = ch % 9;
-    var strokes = fullCycles;
-    if (hole.handicap <= remainder) strokes += 1;
-    return strokes;
   }
 
   function toRad(deg) {
@@ -233,25 +181,21 @@
 
   function roundTotals() {
     var strokes = 0;
-    var net = 0;
     var scored = 0;
     var parPlayed = 0;
     course.holes.forEach(function (hole) {
       var score = getScore(hole.number);
       if (score != null) {
         strokes += score;
-        net += score - strokesOnHole(hole);
         scored += 1;
         parPlayed += hole.par;
       }
     });
     return {
       strokes: strokes,
-      net: net,
       scored: scored,
       parPlayed: parPlayed,
       complete: scored === course.holes.length,
-      ch9: courseHandicap9(),
     };
   }
 
@@ -314,15 +258,6 @@
     els.teeOpen.textContent = teeLabel(selectedTee);
   }
 
-  function updateHcpButton() {
-    if (handicapIndex == null) {
-      els.hcpOpen.textContent = "Set handicap";
-      return;
-    }
-    var ch9 = courseHandicap9();
-    els.hcpOpen.textContent = "HCP " + handicapIndex + " · " + ch9 + " strokes";
-  }
-
   function renderTeeOptions() {
     els.teeOptions.innerHTML = "";
     Object.keys(course.tees).forEach(function (tee) {
@@ -354,29 +289,6 @@
 
   function closeTeePad() {
     els.teePad.hidden = true;
-  }
-
-  function openHcpPad() {
-    els.hcpInput.value = handicapIndex != null ? String(handicapIndex) : "";
-    var ch9 = courseHandicap9();
-    els.hcpHint.textContent =
-      handicapIndex == null
-        ? "Enter your 18-hole Handicap Index. Strokes for this 9 are calculated from the selected tee’s rating/slope."
-        : "9-hole course handicap on " +
-          selectedTee +
-          " tees: " +
-          ch9 +
-          " stroke" +
-          (ch9 === 1 ? "" : "s") +
-          ".";
-    els.hcpPad.hidden = false;
-    setTimeout(function () {
-      els.hcpInput.focus();
-    }, 50);
-  }
-
-  function closeHcpPad() {
-    els.hcpPad.hidden = true;
   }
 
   function renderTotals() {
@@ -468,7 +380,6 @@
       "hole-score" + (score != null ? " " + scoreClass(score, hole.par) : "");
     els.holeMeta.textContent = "Hcp " + hole.handicap + " · " + yards + " yd";
     updateTeeButton();
-    updateHcpButton();
 
     els.distanceMid.textContent = formatDistance(distanceYards(you, hole.middle));
     els.distanceFront.textContent = formatDistance(distanceYards(you, hole.front));
@@ -532,57 +443,43 @@
 
   function openSummary() {
     var totals = roundTotals();
-    var hasHcp = handicapIndex != null;
     els.summaryCourse.textContent = course.name;
     els.summaryTotal.textContent = totals.scored ? String(totals.strokes) : "—";
     els.summaryToPar.textContent = totals.scored
       ? formatToPar(totals.strokes - totals.parPlayed)
       : "E";
 
-    if (hasHcp && totals.scored) {
-      els.summaryNet.hidden = false;
-      els.summaryNet.textContent =
-        "Net " +
-        totals.net +
-        " (" +
-        formatToPar(totals.net - totals.parPlayed) +
-        ") · " +
-        totals.ch9 +
-        " strokes (from HI " +
-        handicapIndex +
-        ")";
-    } else {
-      els.summaryNet.hidden = true;
-    }
-
     els.summaryHoles.innerHTML = "";
-    var runGross = 0;
+    var runScore = 0;
     var runPar = 0;
     course.holes.forEach(function (hole) {
       var score = getScore(hole.number);
-      var strokes = strokesOnHole(hole);
-      var net = score != null ? score - strokes : null;
       if (score != null) {
-        runGross += score;
+        runScore += score;
         runPar += hole.par;
       }
       var row = document.createElement("div");
       row.className = "summary-row " + scoreClass(score, hole.par);
       row.innerHTML =
-        "<span>" +
+        '<div class="summary-main">' +
+        "<strong>Hole " +
         hole.number +
-        (strokes ? "<small class='dot-hcp'>*</small>" : "") +
-        "</span><span>" +
+        "</strong>" +
+        "<span>Par " +
         hole.par +
-        "</span><span>" +
+        "</span>" +
+        "</div>" +
+        '<div class="summary-nums">' +
+        "<span>" +
         (score != null ? score : "—") +
-        "</span><span>" +
-        (net != null ? net : "—") +
-        "</span><span>" +
-        (score != null ? runGross : "—") +
-        "</span><span>" +
-        (score != null ? formatToPar(runGross - runPar) : "—") +
-        "</span>";
+        "</span>" +
+        "<span>" +
+        (score != null ? runScore : "—") +
+        "</span>" +
+        "<span>" +
+        (score != null ? formatToPar(runScore - runPar) : "—") +
+        "</span>" +
+        "</div>";
       els.summaryHoles.appendChild(row);
     });
 
@@ -600,34 +497,19 @@
     var totals = roundTotals();
     var lines = [
       course.name,
-      "Gross " +
+      "Total " +
         totals.strokes +
         " (" +
         formatToPar(totals.strokes - totals.parPlayed) +
         ")",
+      "",
     ];
-    if (handicapIndex != null) {
-      lines.push(
-        "Net " +
-          totals.net +
-          " (" +
-          formatToPar(totals.net - totals.parPlayed) +
-          ") · HI " +
-          handicapIndex +
-          " · " +
-          totals.ch9 +
-          " strokes"
-      );
-    }
-    lines.push("");
-    var runGross = 0;
+    var runScore = 0;
     var runPar = 0;
     course.holes.forEach(function (hole) {
       var score = getScore(hole.number);
-      var strokes = strokesOnHole(hole);
-      var net = score != null ? score - strokes : null;
       if (score != null) {
-        runGross += score;
+        runScore += score;
         runPar += hole.par;
       }
       lines.push(
@@ -637,9 +519,12 @@
           hole.par +
           "  " +
           (score != null ? score : "—") +
-          (net != null ? " net " + net : "") +
           (score != null
-            ? "  tot " + runGross + " (" + formatToPar(runGross - runPar) + ")"
+            ? "  running " +
+              runScore +
+              " (" +
+              formatToPar(runScore - runPar) +
+              ")"
             : "")
       );
     });
@@ -710,34 +595,6 @@
   els.teeClose.addEventListener("click", closeTeePad);
   els.teePad.addEventListener("click", function (event) {
     if (event.target === els.teePad) closeTeePad();
-  });
-  els.hcpOpen.addEventListener("click", function () {
-    bumpActivity();
-    openHcpPad();
-  });
-  els.hcpClose.addEventListener("click", closeHcpPad);
-  els.hcpPad.addEventListener("click", function (event) {
-    if (event.target === els.hcpPad) closeHcpPad();
-  });
-  els.hcpSave.addEventListener("click", function () {
-    var value = parseFloat(els.hcpInput.value);
-    if (els.hcpInput.value.trim() === "" || isNaN(value)) {
-      handicapIndex = null;
-    } else {
-      handicapIndex = Math.max(0, Math.min(54, Math.round(value * 10) / 10));
-    }
-    saveHandicapIndex(handicapIndex);
-    haptic(12);
-    closeHcpPad();
-    render();
-  });
-  els.hcpClear.addEventListener("click", function () {
-    handicapIndex = null;
-    saveHandicapIndex(null);
-    els.hcpInput.value = "";
-    haptic(8);
-    closeHcpPad();
-    render();
   });
   els.padClear.addEventListener("click", function () {
     padDigits = "";
