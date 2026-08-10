@@ -1,4 +1,5 @@
-var CACHE_NAME = "golf-gps-v7";
+// Bump only to force-clear stuck clients. Day-to-day deploys update via network-first below.
+var CACHE_NAME = "golf-gps-v8";
 var ASSETS = [
   "./",
   "./index.html",
@@ -39,22 +40,20 @@ self.addEventListener("fetch", function (event) {
   if (event.request.method !== "GET") return;
 
   event.respondWith(
-    caches.match(event.request).then(function (cached) {
-      var network = fetch(event.request)
-        .then(function (response) {
-          if (response && response.ok) {
-            var copy = response.clone();
-            caches.open(CACHE_NAME).then(function (cache) {
-              cache.put(event.request, copy);
-            });
-          }
-          return response;
-        })
-        .catch(function () {
-          return cached;
+    fetch(event.request)
+      .then(function (response) {
+        if (response && response.ok) {
+          var copy = response.clone();
+          caches.open(CACHE_NAME).then(function (cache) {
+            cache.put(event.request, copy);
+          });
+        }
+        return response;
+      })
+      .catch(function () {
+        return caches.match(event.request).then(function (cached) {
+          return cached || caches.match("./index.html");
         });
-
-      return cached || network;
-    })
+      })
   );
 });

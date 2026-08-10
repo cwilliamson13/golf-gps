@@ -1,24 +1,11 @@
 {
   "name": "Olde Salem Greens",
-  "address": "75 Willson Street",
-  "city": "Salem",
-  "state": "MA",
-  "zip": "01970",
-  "phone": "978-744-2149",
-  "holeCount": 9,
-  "totalPar": 35,
   "defaultTee": "blue",
-  "pinsUpdated": "2026-08-10",
-  "location": {
-    "lat": 42.501545,
-    "lon": -70.908451,
-    "note": "Course center from OpenStreetMap; green pins from Google Maps satellite (approx.)"
-  },
   "tees": {
-    "gold": { "yards": 3089, "ratingMen": 69, "slopeMen": 121 },
-    "blue": { "yards": 2847, "ratingMen": 67.4, "slopeMen": 110 },
-    "white": { "yards": 2568, "ratingMen": 64.4, "slopeMen": 97 },
-    "red": { "yards": 2497, "ratingMen": 64.2, "slopeMen": 96 }
+    "gold": { "yards": 3089 },
+    "blue": { "yards": 2847 },
+    "white": { "yards": 2568 },
+    "red": { "yards": 2497 }
   },
   "holes": [
     {

@@ -415,6 +415,7 @@
   }
 
   function renderTeeOptions() {
+    if (!course) return;
     els.teeOptions.innerHTML = "";
     Object.keys(course.tees).forEach(function (tee) {
       var btn = document.createElement("button");
@@ -439,6 +440,7 @@
   }
 
   function openTeePad() {
+    if (!course) return;
     renderTeeOptions();
     els.teePad.hidden = false;
   }
@@ -494,6 +496,7 @@
   }
 
   function openScorePad() {
+    if (!course) return;
     var hole = currentHole();
     var score = getScore(hole.number);
     padDigits = score != null ? String(score) : "";
@@ -508,6 +511,7 @@
   }
 
   function commitPadScore() {
+    if (!course) return;
     var hole = currentHole();
     if (!padDigits) setScore(hole.number, null);
     else {
@@ -574,6 +578,7 @@
   }
 
   function applyScore(value) {
+    if (!course) return;
     var hole = currentHole();
     if (value == null || value < 1) setScore(hole.number, null);
     else setScore(hole.number, Math.min(15, value));
@@ -583,6 +588,7 @@
   }
 
   function quickScore(action) {
+    if (!course) return;
     var hole = currentHole();
     var current = getScore(hole.number);
     var par = hole.par;
@@ -604,6 +610,7 @@
   }
 
   function cycleHole(step) {
+    if (!course) return;
     holeIndex = (holeIndex + step + course.holes.length) % course.holes.length;
     haptic(8);
     render();
@@ -626,6 +633,7 @@
   }
 
   function openSummary() {
+    if (!course) return;
     var totals = roundTotals();
     els.summaryCourse.textContent = course.name;
     if (!totals.scored) {
@@ -768,6 +776,7 @@
   }
 
   function summaryText() {
+    if (!course) return "";
     var totals = roundTotals();
     var lines = [course.name];
     if (hasHandicap()) {
@@ -839,6 +848,7 @@
   }
 
   function clearRound() {
+    if (!course) return;
     scores = {};
     saveScores();
     summaryShownForComplete = false;
