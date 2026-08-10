@@ -72,14 +72,15 @@ body {
 
 .brand {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.45rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
 }
 
 .hole-label {
   margin: 0.45rem 0 0;
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -167,9 +168,10 @@ body {
 }
 
 .hole-nav {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  width: 100%;
   margin-top: auto;
   padding-bottom: 0.5rem;
 }
@@ -186,14 +188,14 @@ body {
 }
 
 .nav-btn {
-  min-width: 7.5rem;
-  min-height: 3.5rem;
-  padding: 1rem 1.5rem;
+  width: 100%;
+  min-height: 4.25rem;
+  padding: 1.15rem 1rem;
   border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
-  border-radius: 0.65rem;
+  border-radius: 0.75rem;
   background: color-mix(in srgb, var(--bg-light) 55%, transparent);
-  font-size: 1.15rem;
-  font-weight: 600;
+  font-size: 1.35rem;
+  font-weight: 700;
 }
 
 .nav-btn:active,
