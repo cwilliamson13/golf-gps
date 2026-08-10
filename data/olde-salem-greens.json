@@ -9,9 +9,9 @@
   "totalPar": 35,
   "defaultTee": "blue",
   "location": {
-    "lat": 42.5015446,
-    "lon": -70.9084506,
-    "note": "Course center from OpenStreetMap — replace hole pins with real green GPS"
+    "lat": 42.501545,
+    "lon": -70.908451,
+    "note": "Course center from OpenStreetMap; green pins from Google Maps satellite"
   },
   "tees": {
     "gold": { "yards": 3089, "ratingMen": 69, "slopeMen": 121 },
@@ -25,81 +25,81 @@
       "par": 4,
       "handicap": 4,
       "yards": { "gold": 370, "blue": 343, "white": 302, "red": 290 },
-      "front": null,
-      "middle": null,
-      "back": null
+      "front": { "lat": 42.502595, "lon": -70.904656 },
+      "middle": { "lat": 42.502484, "lon": -70.904589 },
+      "back": { "lat": 42.502365, "lon": -70.904551 }
     },
     {
       "number": 2,
       "par": 3,
       "handicap": 3,
       "yards": { "gold": 251, "blue": 246, "white": 221, "red": 213 },
-      "front": null,
-      "middle": null,
-      "back": null
+      "front": { "lat": 42.500184, "lon": -70.904756 },
+      "middle": { "lat": 42.500043, "lon": -70.904665 },
+      "back": { "lat": 42.499932, "lon": -70.904630 }
     },
     {
       "number": 3,
       "par": 4,
       "handicap": 5,
       "yards": { "gold": 365, "blue": 341, "white": 325, "red": 320 },
-      "front": null,
-      "middle": null,
-      "back": null
+      "front": { "lat": 42.497329, "lon": -70.907379 },
+      "middle": { "lat": 42.497194, "lon": -70.907488 },
+      "back": { "lat": 42.497063, "lon": -70.907595 }
     },
     {
       "number": 4,
       "par": 5,
       "handicap": 1,
       "yards": { "gold": 545, "blue": 484, "white": 471, "red": 464 },
-      "front": null,
-      "middle": null,
-      "back": null
+      "front": { "lat": 42.500905, "lon": -70.910672 },
+      "middle": { "lat": 42.500915, "lon": -70.910922 },
+      "back": { "lat": 42.500895, "lon": -70.911090 }
     },
     {
       "number": 5,
       "par": 4,
       "handicap": 6,
       "yards": { "gold": 350, "blue": 324, "white": 280, "red": 274 },
-      "front": null,
-      "middle": null,
-      "back": null
+      "front": { "lat": 42.502152, "lon": -70.908824 },
+      "middle": { "lat": 42.502224, "lon": -70.908602 },
+      "back": { "lat": 42.502340, "lon": -70.908425 }
     },
     {
       "number": 6,
       "par": 4,
       "handicap": 2,
       "yards": { "gold": 411, "blue": 398, "white": 359, "red": 352 },
-      "front": null,
-      "middle": null,
-      "back": null
+      "front": { "lat": 42.499637, "lon": -70.905960 },
+      "middle": { "lat": 42.499586, "lon": -70.905843 },
+      "back": { "lat": 42.499527, "lon": -70.905715 }
     },
     {
       "number": 7,
       "par": 4,
       "handicap": 7,
       "yards": { "gold": 331, "blue": 278, "white": 234, "red": 226 },
-      "front": null,
-      "middle": null,
-      "back": null
+      "front": { "lat": 42.502031, "lon": -70.906737 },
+      "middle": { "lat": 42.502116, "lon": -70.906771 },
+      "back": { "lat": 42.502196, "lon": -70.906820 }
     },
     {
       "number": 8,
       "par": 3,
       "handicap": 8,
       "yards": { "gold": 165, "blue": 144, "white": 131, "red": 122 },
-      "front": null,
-      "middle": null,
-      "back": null
+      "front": { "lat": 42.502233, "lon": -70.905785 },
+      "middle": { "lat": 42.502206, "lon": -70.905595 },
+      "back": { "lat": 42.502185, "lon": -70.905376 }
     },
     {
       "number": 9,
       "par": 4,
       "handicap": 9,
       "yards": { "gold": 301, "blue": 289, "white": 245, "red": 236 },
-      "front": null,
-      "middle": null,
-      "back": null
+      "front": { "lat": 42.504254, "lon": -70.906887 },
+      "middle": { "lat": 42.504404, "lon": -70.907055 },
+      "back": { "lat": 42.504509, "lon": -70.907216 }
     }
   ]
 }
