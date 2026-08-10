@@ -89,6 +89,9 @@ body {
 
 .hole-score-wrap {
   margin-top: 0.4rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
 }
 
 .hole-score-label {
@@ -100,7 +103,7 @@ body {
 }
 
 .hole-score {
-  margin: 0.15rem 0 0;
+  margin: 0;
   font-size: 1.75rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
