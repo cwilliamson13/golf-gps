@@ -87,6 +87,16 @@ body {
   color: var(--text);
 }
 
+.hole-score {
+  margin: 0.35rem 0 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--accent);
+  cursor: pointer;
+}
+
 .hole-meta {
   margin: 0.35rem 0 0;
   font-size: 0.9rem;
@@ -179,8 +189,10 @@ body {
 .nav-btn,
 .hole-cell,
 .scorecard-toggle,
+.clear-round,
 .pad-key,
-.pad-action {
+.pad-action,
+.hole-score {
   font: inherit;
   color: inherit;
   -webkit-tap-highlight-color: transparent;
@@ -209,9 +221,17 @@ body {
   text-align: left;
 }
 
+.scorecard-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: var(--scorecard-toggle-h);
+}
+
 .scorecard-toggle {
   display: flex;
-  width: 100%;
+  flex: 1;
   height: var(--scorecard-toggle-h);
   justify-content: space-between;
   align-items: center;
@@ -223,6 +243,21 @@ body {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+.clear-round {
+  flex-shrink: 0;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--muted) 40%, transparent);
+  border-radius: 0.45rem;
+  background: transparent;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.clear-round:active {
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-mid));
 }
 
 .scorecard.is-collapsed .scorecard-grid {

@@ -1,14 +1,9 @@
 (function () {
-  // iOS ignores user-scalable=no — block double-tap + pinch zoom in JS
-  var lastTouchEnd = 0;
+  // Block pinch zoom only — don't interfere with scrolling
   document.addEventListener(
-    "touchend",
+    "touchmove",
     function (event) {
-      var now = Date.now();
-      if (now - lastTouchEnd <= 350) {
-        event.preventDefault();
-      }
-      lastTouchEnd = now;
+      if (event.touches.length > 1) event.preventDefault();
     },
     { passive: false }
   );
@@ -21,6 +16,38 @@
   document.addEventListener("gestureend", function (event) {
     event.preventDefault();
   });
+
+  var lastTap = 0;
+  var touchMoved = false;
+  document.addEventListener(
+    "touchstart",
+    function () {
+      touchMoved = false;
+    },
+    { passive: true }
+  );
+  document.addEventListener(
+    "touchmove",
+    function () {
+      touchMoved = true;
+    },
+    { passive: true }
+  );
+  document.addEventListener(
+    "touchend",
+    function (event) {
+      if (touchMoved) {
+        lastTap = 0;
+        return;
+      }
+      var now = Date.now();
+      if (now - lastTap <= 300) {
+        event.preventDefault();
+      }
+      lastTap = now;
+    },
+    { passive: false }
+  );
 
   var SCORE_KEY = "golf-gps-scores-olde-salem-greens";
   var COLLAPSE_KEY = "golf-gps-scorecard-collapsed";
@@ -36,6 +63,7 @@
   var els = {
     courseName: document.getElementById("courseName"),
     holeLabel: document.getElementById("holeLabel"),
+    holeScore: document.getElementById("holeScore"),
     holeMeta: document.getElementById("holeMeta"),
     distanceMid: document.getElementById("distanceMid"),
     distanceFront: document.getElementById("distanceFront"),
@@ -47,6 +75,7 @@
     scorecard: document.getElementById("scorecard"),
     scorecardToggle: document.getElementById("scorecardToggle"),
     scorecardChevron: document.getElementById("scorecardChevron"),
+    clearRound: document.getElementById("clearRound"),
     roundTotal: document.getElementById("roundTotal"),
     toPar: document.getElementById("toPar"),
     scorePad: document.getElementById("scorePad"),
@@ -204,9 +233,11 @@
   function render() {
     var hole = currentHole();
     var yards = teeYards(hole);
+    var score = getScore(hole.number);
 
     els.courseName.textContent = course.name;
     els.holeLabel.textContent = "Hole " + hole.number + " · Par " + hole.par;
+    els.holeScore.textContent = score != null ? String(score) : "—";
     els.holeMeta.textContent = "Hcp " + hole.handicap + " · " + yards + " yd";
 
     els.distanceMid.textContent = formatDistance(distanceYards(you, hole.middle));
@@ -291,6 +322,15 @@
     scorecardCollapsed = !scorecardCollapsed;
     localStorage.setItem(COLLAPSE_KEY, scorecardCollapsed ? "1" : "0");
     updateCollapseUi();
+  });
+  els.clearRound.addEventListener("click", function () {
+    if (!window.confirm("Clear all scores for this round?")) return;
+    scores = {};
+    saveScores();
+    render();
+  });
+  els.holeScore.addEventListener("click", function () {
+    openScorePad();
   });
   els.padClear.addEventListener("click", function () {
     padDigits = "";

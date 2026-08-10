@@ -27,6 +27,7 @@
           <div class="top-left">
             <p class="brand" id="courseName">Golf GPS</p>
             <p class="hole-label" id="holeLabel">Hole 1</p>
+            <p class="hole-score" id="holeScore">—</p>
             <p class="hole-meta" id="holeMeta">Hcp 4 · 343 yd</p>
             <p class="gps-status" id="status">Waiting for GPS…</p>
           </div>
@@ -58,10 +59,13 @@
       </div>
 
       <section class="scorecard" id="scorecardSection" aria-label="Scorecard">
-        <button type="button" class="scorecard-toggle" id="scorecardToggle">
-          <span>Scorecard</span>
-          <span id="scorecardChevron">▾</span>
-        </button>
+        <div class="scorecard-bar">
+          <button type="button" class="scorecard-toggle" id="scorecardToggle">
+            <span>Scorecard</span>
+            <span id="scorecardChevron">▾</span>
+          </button>
+          <button type="button" class="clear-round" id="clearRound">Clear round</button>
+        </div>
         <div class="scorecard-grid" id="scorecard"></div>
       </section>
     </main>
