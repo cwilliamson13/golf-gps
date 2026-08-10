@@ -36,6 +36,15 @@
   document.addEventListener(
     "touchend",
     function (event) {
+      // Never block rapid taps on controls — only stop double-tap zoom on the page
+      if (
+        event.target.closest(
+          "button, a, input, label, [role='button'], .hole-score"
+        )
+      ) {
+        lastTap = 0;
+        return;
+      }
       if (touchMoved) {
         lastTap = 0;
         return;
