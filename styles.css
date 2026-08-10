@@ -16,7 +16,6 @@
 
 html,
 body {
-  height: 100%;
   margin: 0;
 }
 
@@ -31,65 +30,224 @@ body {
 }
 
 .shell {
-  min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: max(1.5rem, env(safe-area-inset-top)) 1.5rem
-    max(2rem, env(safe-area-inset-bottom));
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: max(1.25rem, env(safe-area-inset-top)) 1rem
+    max(1.5rem, env(safe-area-inset-bottom));
   text-align: center;
 }
 
+.top {
+  margin-bottom: 1.25rem;
+}
+
 .brand {
-  margin: 0 0 2.5rem;
-  font-size: clamp(1.75rem, 6vw, 2.25rem);
+  margin: 0;
+  font-size: 1.35rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
+}
+
+.hole-label {
+  margin: 0.4rem 0 0;
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.distance-block {
+  margin-bottom: 1.25rem;
+}
+
+.distance {
+  margin: 0;
+  font-size: clamp(4.5rem, 20vw, 6.5rem);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--accent);
 }
 
 .label {
-  margin: 0;
-  font-size: 1rem;
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
-.coords-big {
-  margin: 1rem 0 0;
-  font-size: clamp(1.35rem, 5vw, 1.75rem);
+.pin-row {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  gap: 2.5rem;
+}
+
+.pin-val {
+  display: block;
+  font-size: 1.75rem;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
-  color: var(--accent);
-  word-break: break-all;
+  color: var(--text);
+}
+
+.pin-name {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.hole-nav {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.nav-btn,
+.gps-btn,
+.score-btn,
+.hole-cell {
+  font: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+
+.nav-btn {
+  min-width: 5.5rem;
+  padding: 0.85rem 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--bg-light) 55%, transparent);
+  font-size: 1rem;
+}
+
+.nav-btn:active,
+.hole-cell:active {
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-mid));
+}
+
+.score-entry {
+  margin-bottom: 1rem;
+}
+
+.score-meta {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+.score-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+}
+
+.score-btn {
+  width: 4rem;
+  height: 4rem;
+  border: none;
+  border-radius: 0.75rem;
+  background: var(--accent);
+  color: var(--bg-deep);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.score-btn:active {
+  filter: brightness(0.92);
+}
+
+.score-value {
+  margin: 0;
+  min-width: 3.5rem;
+  font-size: 3rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 .status {
-  margin: 1.5rem 0 0;
-  max-width: 20rem;
-  font-size: 0.95rem;
+  margin: 1rem 0 0;
+  font-size: 0.9rem;
   color: var(--muted);
-  opacity: 0.9;
 }
 
 .gps-btn {
-  margin-top: 2rem;
-  min-width: 10rem;
-  padding: 0.95rem 1.5rem;
+  margin-top: 0.75rem;
+  padding: 0.7rem 1.25rem;
   border: none;
   border-radius: 0.5rem;
-  background: var(--accent);
-  color: var(--bg-deep);
-  font: inherit;
-  font-size: 1.05rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+  background: color-mix(in srgb, var(--bg-light) 70%, transparent);
+  color: var(--text);
+  font-size: 0.95rem;
 }
 
 .gps-btn:active {
-  filter: brightness(0.92);
+  filter: brightness(1.08);
+}
+
+.scorecard {
+  margin-top: 1.75rem;
+  text-align: left;
+}
+
+.scorecard-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.75rem;
+  padding: 0 0.15rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.scorecard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.55rem;
+}
+
+.hole-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.85rem 0.6rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  border-radius: 0.6rem;
+  background: color-mix(in srgb, var(--bg-deep) 45%, transparent);
+  text-align: center;
+}
+
+.hole-cell.is-active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-mid));
+}
+
+.hole-cell-num {
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.hole-cell-score {
+  font-size: 1.6rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.hole-cell-par {
+  font-size: 0.8rem;
+  color: var(--muted);
 }

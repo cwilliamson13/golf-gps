@@ -22,11 +22,55 @@
   </head>
   <body>
     <main class="shell">
-      <p class="brand">Golf GPS</p>
-      <p class="label">your location</p>
-      <p class="coords-big" id="coords">—</p>
+      <header class="top">
+        <p class="brand" id="courseName">Golf GPS</p>
+        <p class="hole-label" id="holeLabel">Hole 1</p>
+      </header>
+
+      <section class="distance-block">
+        <p class="distance" id="distanceMid">—</p>
+        <p class="label">yards to middle</p>
+        <div class="pin-row">
+          <div>
+            <span class="pin-val" id="distanceFront">—</span>
+            <span class="pin-name">Front</span>
+          </div>
+          <div>
+            <span class="pin-val" id="distanceBack">—</span>
+            <span class="pin-name">Back</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="hole-nav">
+        <button type="button" class="nav-btn" id="prevHole">Prev</button>
+        <button type="button" class="nav-btn" id="nextHole">Next</button>
+      </div>
+
+      <section class="score-entry">
+        <p class="score-meta" id="holeMeta">Par 4 · 343 yd</p>
+        <div class="score-controls">
+          <button type="button" class="score-btn" id="scoreMinus" aria-label="Lower score">
+            −
+          </button>
+          <p class="score-value" id="scoreValue">—</p>
+          <button type="button" class="score-btn" id="scorePlus" aria-label="Raise score">
+            +
+          </button>
+        </div>
+        <p class="label">my score</p>
+      </section>
+
       <p class="status" id="status">Waiting for GPS…</p>
-      <button type="button" class="gps-btn" id="refresh">Refresh GPS</button>
+      <button type="button" class="gps-btn" id="refreshGps">Refresh GPS</button>
+
+      <section class="scorecard" aria-label="Scorecard">
+        <div class="scorecard-head">
+          <span>Scorecard</span>
+          <span id="roundTotal">—</span>
+        </div>
+        <div class="scorecard-grid" id="scorecard"></div>
+      </section>
     </main>
     <script src="app.js"></script>
   </body>

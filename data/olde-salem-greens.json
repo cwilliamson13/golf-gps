@@ -1,0 +1,105 @@
+{
+  "name": "Olde Salem Greens",
+  "address": "75 Willson Street",
+  "city": "Salem",
+  "state": "MA",
+  "zip": "01970",
+  "phone": "978-744-2149",
+  "holeCount": 9,
+  "totalPar": 35,
+  "defaultTee": "blue",
+  "location": {
+    "lat": 42.5015446,
+    "lon": -70.9084506,
+    "note": "Course center from OpenStreetMap — replace hole pins with real green GPS"
+  },
+  "tees": {
+    "gold": { "yards": 3089, "ratingMen": 69, "slopeMen": 121 },
+    "blue": { "yards": 2847, "ratingMen": 67.4, "slopeMen": 110 },
+    "white": { "yards": 2568, "ratingMen": 64.4, "slopeMen": 97 },
+    "red": { "yards": 2497, "ratingMen": 64.2, "slopeMen": 96 }
+  },
+  "holes": [
+    {
+      "number": 1,
+      "par": 4,
+      "handicap": 4,
+      "yards": { "gold": 370, "blue": 343, "white": 302, "red": 290 },
+      "front": null,
+      "middle": null,
+      "back": null
+    },
+    {
+      "number": 2,
+      "par": 3,
+      "handicap": 3,
+      "yards": { "gold": 251, "blue": 246, "white": 221, "red": 213 },
+      "front": null,
+      "middle": null,
+      "back": null
+    },
+    {
+      "number": 3,
+      "par": 4,
+      "handicap": 5,
+      "yards": { "gold": 365, "blue": 341, "white": 325, "red": 320 },
+      "front": null,
+      "middle": null,
+      "back": null
+    },
+    {
+      "number": 4,
+      "par": 5,
+      "handicap": 1,
+      "yards": { "gold": 545, "blue": 484, "white": 471, "red": 464 },
+      "front": null,
+      "middle": null,
+      "back": null
+    },
+    {
+      "number": 5,
+      "par": 4,
+      "handicap": 6,
+      "yards": { "gold": 350, "blue": 324, "white": 280, "red": 274 },
+      "front": null,
+      "middle": null,
+      "back": null
+    },
+    {
+      "number": 6,
+      "par": 4,
+      "handicap": 2,
+      "yards": { "gold": 411, "blue": 398, "white": 359, "red": 352 },
+      "front": null,
+      "middle": null,
+      "back": null
+    },
+    {
+      "number": 7,
+      "par": 4,
+      "handicap": 7,
+      "yards": { "gold": 331, "blue": 278, "white": 234, "red": 226 },
+      "front": null,
+      "middle": null,
+      "back": null
+    },
+    {
+      "number": 8,
+      "par": 3,
+      "handicap": 8,
+      "yards": { "gold": 165, "blue": 144, "white": 131, "red": 122 },
+      "front": null,
+      "middle": null,
+      "back": null
+    },
+    {
+      "number": 9,
+      "par": 4,
+      "handicap": 9,
+      "yards": { "gold": 301, "blue": 289, "white": 245, "red": 236 },
+      "front": null,
+      "middle": null,
+      "back": null
+    }
+  ]
+}
