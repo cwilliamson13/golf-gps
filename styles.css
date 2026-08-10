@@ -112,6 +112,22 @@ body {
   cursor: pointer;
 }
 
+.hole-score.is-pulse {
+  animation: score-pulse 0.28s ease;
+}
+
+@keyframes score-pulse {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 .hole-meta {
   margin: 0.35rem 0 0;
   font-size: 0.9rem;
@@ -123,6 +139,13 @@ body {
   font-size: 0.85rem;
   color: var(--muted);
   opacity: 0.9;
+}
+
+.pins-note {
+  margin: 0.25rem 0 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  opacity: 0.75;
 }
 
 .round-total {
@@ -141,6 +164,77 @@ body {
   font-variant-numeric: tabular-nums;
   line-height: 1;
   color: var(--accent);
+}
+
+.tee-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+  margin: 0.75rem 0 0.35rem;
+}
+
+.tee-btn,
+.suggest-btn,
+.summary-link {
+  font: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+
+.tee-btn {
+  min-height: 2.35rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, var(--bg-deep) 40%, transparent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.tee-btn.is-active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-mid));
+  color: var(--accent);
+}
+
+.hole-suggest {
+  margin-top: 0.65rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-mid));
+  text-align: left;
+}
+
+.hole-suggest[hidden] {
+  display: none;
+}
+
+.hole-suggest-text {
+  margin: 0 0 0.55rem;
+  font-size: 0.95rem;
+}
+
+.hole-suggest-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.suggest-btn {
+  min-height: 2.5rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: var(--accent);
+  color: var(--bg-deep);
+  font-weight: 700;
+}
+
+.suggest-dismiss {
+  background: color-mix(in srgb, var(--bg-light) 55%, transparent);
+  color: var(--text);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .distance-block {
@@ -300,7 +394,23 @@ body {
   color: var(--muted);
 }
 
-.clear-round:active {
+.summary-link {
+  flex-shrink: 0;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 0.45rem;
+  background: transparent;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+.summary-link[hidden] {
+  display: none;
+}
+
+.clear-round:active,
+.summary-link:active {
   background: color-mix(in srgb, var(--accent) 18%, var(--bg-mid));
 }
 
@@ -348,6 +458,101 @@ body {
 .hole-cell-par {
   font-size: 0.8rem;
   color: var(--muted);
+}
+
+.hole-cell.score-eagle .hole-cell-score,
+.hole-score.score-eagle {
+  color: #7dd3fc;
+}
+
+.hole-cell.score-birdie .hole-cell-score,
+.hole-score.score-birdie {
+  color: #86efac;
+}
+
+.hole-cell.score-par .hole-cell-score,
+.hole-score.score-par {
+  color: var(--text);
+}
+
+.hole-cell.score-bogey .hole-cell-score,
+.hole-score.score-bogey {
+  color: #fbbf24;
+}
+
+.hole-cell.score-over .hole-cell-score,
+.hole-score.score-over {
+  color: #f87171;
+}
+
+.summary {
+  min-height: 100dvh;
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: max(1.25rem, env(safe-area-inset-top)) 1rem
+    max(1.5rem, env(safe-area-inset-bottom));
+  text-align: center;
+}
+
+.summary[hidden] {
+  display: none;
+}
+
+.summary-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.summary-kicker {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.summary-total {
+  margin: 0.5rem 0 0;
+  font-size: 4rem;
+  font-weight: 300;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.summary-topar {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.summary-holes {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.4rem;
+  text-align: left;
+}
+
+.summary-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 0.7fr 0.7fr;
+  gap: 0.4rem;
+  padding: 0.65rem 0.7rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--bg-deep) 45%, transparent);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.92rem;
+}
+
+.summary-actions {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.summary-new {
+  background: var(--accent);
+  color: var(--bg-deep);
+  border: none;
 }
 
 .pad {

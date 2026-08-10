@@ -3,6 +3,7 @@
   "short_name": "Golf GPS",
   "description": "Distance to the hole and on-course GPS",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#0f2419",
   "theme_color": "#1a3d2e",

@@ -21,7 +21,7 @@
     <title>Golf GPS</title>
   </head>
   <body>
-    <main class="shell">
+    <main class="shell" id="playView">
       <div class="play-area">
         <header class="top">
           <div class="top-left">
@@ -33,12 +33,25 @@
             </div>
             <p class="hole-meta" id="holeMeta">Hcp 4 · 343 yd</p>
             <p class="gps-status" id="status">Waiting for GPS…</p>
+            <p class="pins-note" id="pinsNote"></p>
           </div>
           <div class="top-right">
             <p class="round-total" id="roundTotal">—</p>
             <p class="to-par" id="toPar">E</p>
           </div>
         </header>
+
+        <div class="tee-row" id="teeRow" role="group" aria-label="Tee"></div>
+
+        <div class="hole-suggest" id="holeSuggest" hidden>
+          <p class="hole-suggest-text" id="holeSuggestText"></p>
+          <div class="hole-suggest-actions">
+            <button type="button" class="suggest-btn" id="holeSuggestYes">Switch</button>
+            <button type="button" class="suggest-btn suggest-dismiss" id="holeSuggestNo">
+              Dismiss
+            </button>
+          </div>
+        </div>
 
         <section class="distance-block">
           <p class="distance" id="distanceMid">—</p>
@@ -77,11 +90,30 @@
             <span>Scorecard</span>
             <span id="scorecardChevron">▾</span>
           </button>
+          <button type="button" class="summary-link" id="openSummary" hidden>
+            Summary
+          </button>
           <button type="button" class="clear-round" id="clearRound">Clear round</button>
         </div>
         <div class="scorecard-grid" id="scorecard"></div>
       </section>
     </main>
+
+    <section class="summary" id="summaryView" hidden>
+      <div class="summary-inner">
+        <p class="summary-kicker" id="summaryCourse">Round complete</p>
+        <p class="summary-total" id="summaryTotal">—</p>
+        <p class="summary-topar" id="summaryToPar">E</p>
+        <div class="summary-holes" id="summaryHoles"></div>
+        <div class="summary-actions">
+          <button type="button" class="nav-btn" id="summaryShare">Copy summary</button>
+          <button type="button" class="nav-btn" id="summaryClose">Back</button>
+          <button type="button" class="nav-btn summary-new" id="summaryNewRound">
+            New round
+          </button>
+        </div>
+      </div>
+    </section>
 
     <div class="pad" id="scorePad" hidden>
       <div class="pad-sheet">

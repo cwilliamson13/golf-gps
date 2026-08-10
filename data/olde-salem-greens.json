@@ -8,10 +8,11 @@
   "holeCount": 9,
   "totalPar": 35,
   "defaultTee": "blue",
+  "pinsUpdated": "2026-08-10",
   "location": {
     "lat": 42.501545,
     "lon": -70.908451,
-    "note": "Course center from OpenStreetMap; green pins from Google Maps satellite"
+    "note": "Course center from OpenStreetMap; green pins from Google Maps satellite (approx.)"
   },
   "tees": {
     "gold": { "yards": 3089, "ratingMen": 69, "slopeMen": 121 },
