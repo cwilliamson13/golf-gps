@@ -116,6 +116,7 @@
     summaryHoles: document.getElementById("summaryHoles"),
     summaryShare: document.getElementById("summaryShare"),
     summaryClose: document.getElementById("summaryClose"),
+    summaryBack: document.getElementById("summaryBack"),
     summaryNewRound: document.getElementById("summaryNewRound"),
   };
 
@@ -903,6 +904,7 @@
     if (event.target === els.scorePad) closeScorePad();
   });
   els.summaryClose.addEventListener("click", closeSummary);
+  els.summaryBack.addEventListener("click", closeSummary);
   els.summaryNewRound.addEventListener("click", function () {
     if (!window.confirm("Start a new round and clear scores?")) return;
     clearRound();

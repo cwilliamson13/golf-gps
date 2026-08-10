@@ -462,6 +462,29 @@ body {
   gap: 0.75rem;
 }
 
+.summary-top {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.summary-back {
+  margin: 0;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--muted) 35%, transparent);
+  border-radius: 0.45rem;
+  background: transparent;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.summary-back:active {
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-mid));
+  color: var(--text);
+}
+
 .summary-kicker {
   margin: 0;
   font-size: 1.1rem;
