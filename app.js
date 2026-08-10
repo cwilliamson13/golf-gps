@@ -1,4 +1,27 @@
 (function () {
+  // iOS ignores user-scalable=no — block double-tap + pinch zoom in JS
+  var lastTouchEnd = 0;
+  document.addEventListener(
+    "touchend",
+    function (event) {
+      var now = Date.now();
+      if (now - lastTouchEnd <= 350) {
+        event.preventDefault();
+      }
+      lastTouchEnd = now;
+    },
+    { passive: false }
+  );
+  document.addEventListener("gesturestart", function (event) {
+    event.preventDefault();
+  });
+  document.addEventListener("gesturechange", function (event) {
+    event.preventDefault();
+  });
+  document.addEventListener("gestureend", function (event) {
+    event.preventDefault();
+  });
+
   var SCORE_KEY = "golf-gps-scores-olde-salem-greens";
   var EARTH_RADIUS_YARDS = 6371000 / 0.9144;
 

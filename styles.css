@@ -12,12 +12,14 @@
 *::before,
 *::after {
   box-sizing: border-box;
+  touch-action: manipulation;
 }
 
 html,
 body {
   margin: 0;
   touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
