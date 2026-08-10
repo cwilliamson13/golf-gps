@@ -141,31 +141,23 @@ body {
   opacity: 0.9;
 }
 
-.settings-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: 0.45rem;
-}
-
-.tee-open,
-.hcp-open {
-  margin: 0;
-  padding: 0.35rem 0.65rem;
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-  border-radius: 0.4rem;
-  background: color-mix(in srgb, var(--bg-light) 40%, transparent);
+.tee-open {
+  display: inline-block;
+  margin: 0.4rem 0 0;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--muted) 28%, transparent);
+  border-radius: 0.35rem;
+  background: transparent;
   font: inherit;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--muted);
   -webkit-tap-highlight-color: transparent;
   cursor: pointer;
 }
 
-.tee-open:active,
-.hcp-open:active {
-  background: color-mix(in srgb, var(--accent) 20%, var(--bg-mid));
+.tee-open:active {
+  background: color-mix(in srgb, var(--bg-light) 35%, transparent);
 }
 
 .round-total {
@@ -476,58 +468,46 @@ body {
   color: var(--text);
 }
 
-.summary-net {
-  margin: 0.35rem 0 0;
-  font-size: 0.95rem;
-  color: var(--muted);
-}
-
-.summary-net[hidden] {
-  display: none;
-}
-
-.summary-head,
-.summary-row {
-  display: grid;
-  grid-template-columns: 0.55fr 0.55fr 0.55fr 0.55fr 0.7fr 0.7fr;
-  gap: 0.25rem;
-  align-items: center;
-  font-variant-numeric: tabular-nums;
-  font-size: 0.88rem;
-}
-
-.summary-head {
-  margin-top: 1rem;
-  padding: 0 0.7rem;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-size: 0.72rem;
-}
-
 .summary-holes {
-  margin-top: 0.35rem;
+  margin-top: 1rem;
   display: grid;
-  gap: 0.35rem;
+  gap: 0.4rem;
   text-align: left;
 }
 
 .summary-row {
-  padding: 0.65rem 0.7rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.8rem;
   border-radius: 0.5rem;
   background: color-mix(in srgb, var(--bg-deep) 45%, transparent);
+  font-variant-numeric: tabular-nums;
 }
 
-.dot-hcp {
-  color: var(--accent);
-  font-size: 0.85em;
+.summary-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
 }
 
-.summary-footnote {
-  margin: 0.5rem 0 0;
-  font-size: 0.75rem;
+.summary-main strong {
+  font-size: 0.95rem;
+}
+
+.summary-main span {
+  font-size: 0.8rem;
   color: var(--muted);
-  text-align: left;
+}
+
+.summary-nums {
+  display: grid;
+  grid-template-columns: 2rem 2.4rem 2.4rem;
+  gap: 0.35rem;
+  text-align: right;
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 
 .summary-actions {
@@ -561,33 +541,6 @@ body {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 20%, var(--bg-mid));
   color: var(--accent);
-}
-
-.hcp-sheet {
-  text-align: left;
-}
-
-.hcp-hint {
-  margin: 0.75rem 0;
-  font-size: 0.9rem;
-  color: var(--muted);
-  line-height: 1.35;
-}
-
-.hcp-input {
-  width: 100%;
-  margin-bottom: 0.75rem;
-  padding: 0.9rem 1rem;
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-  border-radius: 0.55rem;
-  background: color-mix(in srgb, var(--bg-deep) 55%, transparent);
-  color: var(--text);
-  font: inherit;
-  font-size: 1.35rem;
-}
-
-.hcp-input:focus {
-  outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 .pad {
