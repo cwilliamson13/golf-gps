@@ -331,6 +331,7 @@
     haptic(14);
     pulseScore();
     render();
+    if (!els.summaryView.hidden) openSummary();
   }
 
   function renderScorecard() {
@@ -452,13 +453,14 @@
     els.summaryHoles.innerHTML = "";
     var runScore = 0;
     var runPar = 0;
-    course.holes.forEach(function (hole) {
+    course.holes.forEach(function (hole, index) {
       var score = getScore(hole.number);
       if (score != null) {
         runScore += score;
         runPar += hole.par;
       }
-      var row = document.createElement("div");
+      var row = document.createElement("button");
+      row.type = "button";
       row.className = "summary-row " + scoreClass(score, hole.par);
       row.innerHTML =
         '<div class="summary-main">' +
@@ -470,16 +472,29 @@
         "</span>" +
         "</div>" +
         '<div class="summary-nums">' +
+        '<span class="summary-hole-nums">' +
         "<span>" +
         (score != null ? score : "—") +
         "</span>" +
+        "<span>" +
+        (score != null ? formatToPar(score - hole.par) : "—") +
+        "</span>" +
+        "</span>" +
+        '<span class="summary-run-nums">' +
         "<span>" +
         (score != null ? runScore : "—") +
         "</span>" +
         "<span>" +
         (score != null ? formatToPar(runScore - runPar) : "—") +
         "</span>" +
+        "</span>" +
         "</div>";
+      row.addEventListener("click", function () {
+        holeIndex = index;
+        haptic(8);
+        render();
+        openScorePad();
+      });
       els.summaryHoles.appendChild(row);
     });
 

@@ -272,6 +272,7 @@ body {
 .score-quick-btn,
 .summary-link,
 .tee-option,
+.summary-row,
 .hole-score {
   font: inherit;
   color: inherit;
@@ -477,13 +478,20 @@ body {
 
 .summary-row {
   display: flex;
+  width: 100%;
   justify-content: space-between;
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
   border-radius: 0.5rem;
   background: color-mix(in srgb, var(--bg-deep) 45%, transparent);
   font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+.summary-row:active {
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-mid));
 }
 
 .summary-main {
@@ -502,12 +510,24 @@ body {
 }
 
 .summary-nums {
-  display: grid;
-  grid-template-columns: 2rem 2.4rem 2.4rem;
-  gap: 0.35rem;
-  text-align: right;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
   font-size: 0.95rem;
   font-weight: 600;
+}
+
+.summary-hole-nums,
+.summary-run-nums {
+  display: grid;
+  grid-template-columns: 2rem 2.35rem;
+  gap: 0.35rem;
+  text-align: right;
+}
+
+.summary-run-nums {
+  padding-left: 0.85rem;
+  border-left: 1px solid color-mix(in srgb, var(--muted) 35%, transparent);
 }
 
 .summary-actions {
