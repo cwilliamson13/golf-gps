@@ -32,7 +32,10 @@
               <p class="hole-score" id="holeScore">—</p>
             </div>
             <p class="hole-meta" id="holeMeta">Hcp 4 · 343 yd</p>
-            <button type="button" class="tee-open" id="teeOpen">Blue tees</button>
+            <div class="settings-row">
+              <button type="button" class="tee-open" id="teeOpen">Blue tees</button>
+              <button type="button" class="hcp-open" id="hcpOpen">Set handicap</button>
+            </div>
             <p class="gps-status" id="status">Waiting for GPS…</p>
           </div>
           <div class="top-right">
@@ -92,10 +95,12 @@
         <p class="summary-kicker" id="summaryCourse">Round complete</p>
         <p class="summary-total" id="summaryTotal">—</p>
         <p class="summary-topar" id="summaryToPar">E</p>
+        <p class="summary-net" id="summaryNet" hidden></p>
         <div class="summary-head">
-          <span>Hole</span><span>Par</span><span>Score</span><span>Tot</span><span>+/−</span>
+          <span>#</span><span>Par</span><span>Gr</span><span>Net</span><span>Tot</span><span>+/−</span>
         </div>
         <div class="summary-holes" id="summaryHoles"></div>
+        <p class="summary-footnote">* = stroke hole · Tot / +/− are running gross</p>
         <div class="summary-actions">
           <button type="button" class="nav-btn" id="summaryShare">Copy summary</button>
           <button type="button" class="nav-btn" id="summaryClose">Back</button>
@@ -111,6 +116,28 @@
         <p class="pad-title">Select tee</p>
         <div class="tee-options" id="teeOptions"></div>
         <button type="button" class="pad-action pad-done" id="teeClose">Done</button>
+      </div>
+    </div>
+
+    <div class="pad" id="hcpPad" hidden>
+      <div class="pad-sheet hcp-sheet">
+        <p class="pad-title">Handicap Index</p>
+        <p class="hcp-hint" id="hcpHint"></p>
+        <input
+          id="hcpInput"
+          class="hcp-input"
+          type="number"
+          inputmode="decimal"
+          step="0.1"
+          min="0"
+          max="54"
+          placeholder="e.g. 14.2"
+        />
+        <div class="pad-actions">
+          <button type="button" class="pad-action" id="hcpClear">Clear</button>
+          <button type="button" class="pad-action pad-done" id="hcpSave">Save</button>
+        </div>
+        <button type="button" class="pad-action" id="hcpClose">Cancel</button>
       </div>
     </div>
 
