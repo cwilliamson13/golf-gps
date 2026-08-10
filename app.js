@@ -941,13 +941,26 @@
   });
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js").catch(function () {});
     var refreshing = false;
     navigator.serviceWorker.addEventListener("controllerchange", function () {
       if (refreshing) return;
       refreshing = true;
       window.location.reload();
     });
+
+    function checkForSwUpdate(reg) {
+      if (reg) reg.update().catch(function () {});
+    }
+
+    navigator.serviceWorker
+      .register("./sw.js")
+      .then(function (reg) {
+        checkForSwUpdate(reg);
+        document.addEventListener("visibilitychange", function () {
+          if (!document.hidden) checkForSwUpdate(reg);
+        });
+      })
+      .catch(function () {});
   }
 
   try {

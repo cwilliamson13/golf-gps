@@ -1,10 +1,10 @@
-// Bump only to force-clear stuck clients. Day-to-day deploys update via network-first below.
-var CACHE_NAME = "golf-gps-v8";
+// Bump CACHE_NAME when clients are stuck on an old build (iOS home screen).
+var CACHE_NAME = "golf-gps-v10";
 var ASSETS = [
   "./",
   "./index.html",
-  "./styles.css",
-  "./app.js",
+  "./styles.css?v=10",
+  "./app.js?v=10",
   "./manifest.webmanifest",
   "./data/olde-salem-greens.json",
   "./icons/favicon.svg",
@@ -40,7 +40,7 @@ self.addEventListener("fetch", function (event) {
   if (event.request.method !== "GET") return;
 
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, { cache: "reload" })
       .then(function (response) {
         if (response && response.ok) {
           var copy = response.clone();
