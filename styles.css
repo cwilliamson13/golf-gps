@@ -42,12 +42,26 @@ body {
 }
 
 .top {
-  margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  text-align: left;
+}
+
+.top-left {
+  min-width: 0;
+}
+
+.top-right {
+  flex-shrink: 0;
+  text-align: right;
 }
 
 .brand {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: 0.03em;
 }
@@ -55,26 +69,33 @@ body {
 .hole-label {
   margin: 0.35rem 0 0;
   font-size: 0.95rem;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
+.hole-meta {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.round-total {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--text);
+}
+
 .to-par {
-  margin: 0.65rem 0 0;
-  font-size: 2rem;
+  margin: 0.3rem 0 0;
+  font-size: 1.35rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1;
   color: var(--accent);
-}
-
-.to-par-label {
-  margin: 0.25rem 0 0;
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
 }
 
 .distance-block {
@@ -126,12 +147,14 @@ body {
   display: flex;
   justify-content: center;
   gap: 0.75rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .nav-btn,
-.score-btn,
-.hole-cell {
+.hole-cell,
+.scorecard-toggle,
+.pad-key,
+.pad-action {
   font: inherit;
   color: inherit;
   -webkit-tap-highlight-color: transparent;
@@ -148,79 +171,44 @@ body {
 }
 
 .nav-btn:active,
-.hole-cell:active {
+.hole-cell:active,
+.pad-key:active,
+.pad-action:active {
   background: color-mix(in srgb, var(--accent) 22%, var(--bg-mid));
 }
 
-.score-entry {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 0.65rem 1rem;
-  margin-bottom: 0.5rem;
-}
-
-.score-meta {
-  margin: 0;
-  width: 100%;
-  font-size: 0.9rem;
-  color: var(--muted);
-}
-
-.score-controls {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.65rem;
-}
-
-.score-btn {
-  width: 2.4rem;
-  height: 2.4rem;
-  border: none;
-  border-radius: 0.45rem;
-  background: var(--accent);
-  color: var(--bg-deep);
-  font-size: 1.25rem;
-  font-weight: 600;
-  line-height: 1;
-}
-
-.score-btn:active {
-  filter: brightness(0.92);
-}
-
-.score-value {
-  margin: 0;
-  min-width: 1.75rem;
-  font-size: 1.35rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-
 .status {
-  margin: 1rem 0 0;
+  margin: 0.75rem 0 0;
   font-size: 0.9rem;
   color: var(--muted);
 }
 
 .scorecard {
-  margin-top: 1.75rem;
+  margin-top: 1.5rem;
   text-align: left;
 }
 
-.scorecard-head {
+.scorecard-toggle {
   display: flex;
+  width: 100%;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   margin-bottom: 0.75rem;
-  padding: 0 0.15rem;
+  padding: 0.55rem 0.15rem;
+  border: none;
+  background: transparent;
   font-size: 0.85rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+.scorecard.is-collapsed .scorecard-grid {
+  display: none;
+}
+
+.scorecard.is-collapsed .scorecard-toggle {
+  margin-bottom: 0;
 }
 
 .scorecard-grid {
@@ -262,4 +250,82 @@ body {
 .hole-cell-par {
   font-size: 0.8rem;
   color: var(--muted);
+}
+
+.pad {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 0.75rem max(0.75rem, env(safe-area-inset-bottom));
+  background: color-mix(in srgb, #000 45%, transparent);
+}
+
+.pad[hidden] {
+  display: none;
+}
+
+.pad-sheet {
+  width: min(100%, 24rem);
+  padding: 1.25rem 1rem 1rem;
+  border-radius: 1rem 1rem 0.75rem 0.75rem;
+  background: var(--bg-mid);
+  text-align: center;
+}
+
+.pad-title {
+  margin: 0;
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.pad-value {
+  margin: 0.65rem 0 1rem;
+  min-height: 3rem;
+  font-size: 3rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.pad-keys {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.55rem;
+}
+
+.pad-key {
+  height: 3.35rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--bg-light) 45%, transparent);
+  font-size: 1.45rem;
+  font-weight: 600;
+}
+
+.pad-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+}
+
+.pad-action {
+  height: 3rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--bg-light) 35%, transparent);
+  font-size: 1rem;
+}
+
+.pad-done {
+  border: none;
+  background: var(--accent);
+  color: var(--bg-deep);
+  font-weight: 700;
 }

@@ -23,29 +23,38 @@
   });
 
   var SCORE_KEY = "golf-gps-scores-olde-salem-greens";
+  var COLLAPSE_KEY = "golf-gps-scorecard-collapsed";
   var EARTH_RADIUS_YARDS = 6371000 / 0.9144;
 
   var course = null;
   var holeIndex = 0;
   var you = null;
   var scores = {};
+  var padDigits = "";
+  var scorecardCollapsed = localStorage.getItem(COLLAPSE_KEY) === "1";
 
   var els = {
     courseName: document.getElementById("courseName"),
     holeLabel: document.getElementById("holeLabel"),
+    holeMeta: document.getElementById("holeMeta"),
     distanceMid: document.getElementById("distanceMid"),
     distanceFront: document.getElementById("distanceFront"),
     distanceBack: document.getElementById("distanceBack"),
-    holeMeta: document.getElementById("holeMeta"),
-    scoreValue: document.getElementById("scoreValue"),
-    scoreMinus: document.getElementById("scoreMinus"),
-    scorePlus: document.getElementById("scorePlus"),
     status: document.getElementById("status"),
     prevHole: document.getElementById("prevHole"),
     nextHole: document.getElementById("nextHole"),
+    scorecardSection: document.getElementById("scorecardSection"),
     scorecard: document.getElementById("scorecard"),
+    scorecardToggle: document.getElementById("scorecardToggle"),
+    scorecardChevron: document.getElementById("scorecardChevron"),
     roundTotal: document.getElementById("roundTotal"),
     toPar: document.getElementById("toPar"),
+    scorePad: document.getElementById("scorePad"),
+    padTitle: document.getElementById("padTitle"),
+    padValue: document.getElementById("padValue"),
+    padKeys: document.getElementById("padKeys"),
+    padClear: document.getElementById("padClear"),
+    padDone: document.getElementById("padDone"),
   };
 
   function currentHole() {
@@ -118,6 +127,51 @@
     return { strokes: strokes, scored: scored, parPlayed: parPlayed };
   }
 
+  function updateCollapseUi() {
+    els.scorecardSection.classList.toggle("is-collapsed", scorecardCollapsed);
+    els.scorecardChevron.textContent = scorecardCollapsed ? "▸" : "▾";
+  }
+
+  function renderTotals() {
+    var totals = roundTotals();
+    if (totals.scored === 0) {
+      els.roundTotal.textContent = "—";
+      els.toPar.textContent = "E";
+      return;
+    }
+    var toPar = totals.strokes - totals.parPlayed;
+    els.roundTotal.textContent = String(totals.strokes);
+    els.toPar.textContent =
+      toPar === 0 ? "E" : toPar > 0 ? "+" + toPar : String(toPar);
+  }
+
+  function openScorePad() {
+    var hole = currentHole();
+    var score = getScore(hole.number);
+    padDigits = score != null ? String(score) : "";
+    els.padTitle.textContent = "Hole " + hole.number;
+    els.padValue.textContent = padDigits || "—";
+    els.scorePad.hidden = false;
+  }
+
+  function closeScorePad() {
+    els.scorePad.hidden = true;
+  }
+
+  function commitPadScore() {
+    var hole = currentHole();
+    if (!padDigits) {
+      setScore(hole.number, null);
+    } else {
+      var value = parseInt(padDigits, 10);
+      if (!isNaN(value) && value >= 1 && value <= 15) {
+        setScore(hole.number, value);
+      }
+    }
+    closeScorePad();
+    render();
+  }
+
   function renderScorecard() {
     els.scorecard.innerHTML = "";
     course.holes.forEach(function (hole, index) {
@@ -140,59 +194,31 @@
       btn.addEventListener("click", function () {
         holeIndex = index;
         render();
+        openScorePad();
       });
       els.scorecard.appendChild(btn);
     });
-
-    var totals = roundTotals();
-    var toParText = "E";
-    if (totals.scored === 0) {
-      els.roundTotal.textContent = "—";
-      els.toPar.textContent = "E";
-    } else {
-      var toPar = totals.strokes - totals.parPlayed;
-      toParText = toPar === 0 ? "E" : toPar > 0 ? "+" + toPar : String(toPar);
-      els.roundTotal.textContent = totals.strokes + " (" + toParText + ")";
-      els.toPar.textContent = toParText;
-    }
+    renderTotals();
   }
 
   function render() {
     var hole = currentHole();
     var yards = teeYards(hole);
-    var score = getScore(hole.number);
 
     els.courseName.textContent = course.name;
     els.holeLabel.textContent = "Hole " + hole.number + " · Par " + hole.par;
-    els.holeMeta.textContent =
-      "Par " + hole.par + " · Hcp " + hole.handicap + " · " + yards + " yd";
-    els.scoreValue.textContent = score != null ? String(score) : "—";
+    els.holeMeta.textContent = "Hcp " + hole.handicap + " · " + yards + " yd";
 
     els.distanceMid.textContent = formatDistance(distanceYards(you, hole.middle));
     els.distanceFront.textContent = formatDistance(distanceYards(you, hole.front));
     els.distanceBack.textContent = formatDistance(distanceYards(you, hole.back));
 
+    updateCollapseUi();
     renderScorecard();
   }
 
   function cycleHole(step) {
     holeIndex = (holeIndex + step + course.holes.length) % course.holes.length;
-    render();
-  }
-
-  function adjustScore(delta) {
-    var hole = currentHole();
-    var current = getScore(hole.number);
-    if (current == null) {
-      setScore(hole.number, hole.par);
-    } else {
-      var next = current + delta;
-      if (next < 1) {
-        setScore(hole.number, null);
-      } else {
-        setScore(hole.number, next);
-      }
-    }
     render();
   }
 
@@ -232,19 +258,50 @@
     });
   }
 
+  function buildPadKeys() {
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, "", 0, ""].forEach(function (key) {
+      if (key === "") {
+        var spacer = document.createElement("span");
+        els.padKeys.appendChild(spacer);
+        return;
+      }
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "pad-key";
+      btn.textContent = String(key);
+      btn.addEventListener("click", function () {
+        if (padDigits.length >= 2) return;
+        padDigits += String(key);
+        // Keep scores in a sensible golf range while typing
+        var value = parseInt(padDigits, 10);
+        if (value > 15) padDigits = "15";
+        els.padValue.textContent = padDigits;
+      });
+      els.padKeys.appendChild(btn);
+    });
+  }
+
   els.prevHole.addEventListener("click", function () {
     cycleHole(-1);
   });
   els.nextHole.addEventListener("click", function () {
     cycleHole(1);
   });
-  els.scoreMinus.addEventListener("click", function () {
-    adjustScore(-1);
+  els.scorecardToggle.addEventListener("click", function () {
+    scorecardCollapsed = !scorecardCollapsed;
+    localStorage.setItem(COLLAPSE_KEY, scorecardCollapsed ? "1" : "0");
+    updateCollapseUi();
   });
-  els.scorePlus.addEventListener("click", function () {
-    adjustScore(1);
+  els.padClear.addEventListener("click", function () {
+    padDigits = "";
+    els.padValue.textContent = "—";
+  });
+  els.padDone.addEventListener("click", commitPadScore);
+  els.scorePad.addEventListener("click", function (event) {
+    if (event.target === els.scorePad) closeScorePad();
   });
 
+  buildPadKeys();
   loadScores();
 
   fetch("data/olde-salem-greens.json")

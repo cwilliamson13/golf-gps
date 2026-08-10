@@ -23,10 +23,15 @@
   <body>
     <main class="shell">
       <header class="top">
-        <p class="brand" id="courseName">Golf GPS</p>
-        <p class="hole-label" id="holeLabel">Hole 1</p>
-        <p class="to-par" id="toPar">E</p>
-        <p class="to-par-label">vs par</p>
+        <div class="top-left">
+          <p class="brand" id="courseName">Golf GPS</p>
+          <p class="hole-label" id="holeLabel">Hole 1</p>
+          <p class="hole-meta" id="holeMeta">Par 4 · 343 yd</p>
+        </div>
+        <div class="top-right">
+          <p class="round-total" id="roundTotal">—</p>
+          <p class="to-par" id="toPar">E</p>
+        </div>
       </header>
 
       <section class="distance-block">
@@ -49,29 +54,29 @@
         <button type="button" class="nav-btn" id="nextHole">Next</button>
       </div>
 
-      <section class="score-entry">
-        <p class="score-meta" id="holeMeta">Par 4 · 343 yd</p>
-        <div class="score-controls">
-          <button type="button" class="score-btn" id="scoreMinus" aria-label="Lower score">
-            −
-          </button>
-          <p class="score-value" id="scoreValue">—</p>
-          <button type="button" class="score-btn" id="scorePlus" aria-label="Raise score">
-            +
-          </button>
-        </div>
-      </section>
-
       <p class="status" id="status">Waiting for GPS…</p>
 
-      <section class="scorecard" aria-label="Scorecard">
-        <div class="scorecard-head">
+      <section class="scorecard" id="scorecardSection" aria-label="Scorecard">
+        <button type="button" class="scorecard-toggle" id="scorecardToggle">
           <span>Scorecard</span>
-          <span id="roundTotal">—</span>
-        </div>
+          <span id="scorecardChevron">▾</span>
+        </button>
         <div class="scorecard-grid" id="scorecard"></div>
       </section>
     </main>
+
+    <div class="pad" id="scorePad" hidden>
+      <div class="pad-sheet">
+        <p class="pad-title" id="padTitle">Hole 1</p>
+        <p class="pad-value" id="padValue">—</p>
+        <div class="pad-keys" id="padKeys"></div>
+        <div class="pad-actions">
+          <button type="button" class="pad-action" id="padClear">Clear</button>
+          <button type="button" class="pad-action pad-done" id="padDone">Done</button>
+        </div>
+      </div>
+    </div>
+
     <script src="app.js"></script>
   </body>
 </html>
