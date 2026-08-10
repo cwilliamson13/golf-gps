@@ -10,10 +10,12 @@ const els = {
   status: document.querySelector("[data-status]"),
   prev: document.querySelector("[data-prev-hole]"),
   next: document.querySelector("[data-next-hole]"),
+  enableGps: document.querySelector("[data-enable-gps]"),
 };
 
 let holeIndex = 0;
 let you = null;
+let stopWatch = null;
 
 function currentHole() {
   return course.holes[holeIndex];
@@ -41,20 +43,29 @@ function cycleHole(step) {
   render();
 }
 
+function startGps() {
+  if (stopWatch) return;
+
+  els.status.textContent = "Getting GPS…";
+  els.enableGps.hidden = true;
+
+  stopWatch = watchPosition(
+    (pos) => {
+      you = pos;
+      const accuracyYds = Math.round(pos.accuracyMeters / 0.9144);
+      els.status.textContent = `GPS ±${accuracyYds} yd`;
+      render();
+    },
+    (message) => {
+      stopWatch = null;
+      els.enableGps.hidden = false;
+      els.status.textContent = message;
+    }
+  );
+}
+
 els.prev.addEventListener("click", () => cycleHole(-1));
 els.next.addEventListener("click", () => cycleHole(1));
+els.enableGps.addEventListener("click", startGps);
 
-els.status.textContent = "Getting GPS…";
 render();
-
-watchPosition(
-  (pos) => {
-    you = pos;
-    const accuracyYds = Math.round(pos.accuracyMeters / 0.9144);
-    els.status.textContent = `GPS ±${accuracyYds} yd`;
-    render();
-  },
-  (message) => {
-    els.status.textContent = message;
-  }
-);
