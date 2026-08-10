@@ -1,0 +1,73 @@
+:root {
+  --bg-deep: #0f2419;
+  --bg-mid: #1a3d2e;
+  --bg-light: #2a5a43;
+  --text: #f2f7f4;
+  --muted: #a8c4b4;
+  --accent: #c8e6a0;
+  --font-display: "Segoe UI", system-ui, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  min-height: 100dvh;
+  font-family: var(--font-display);
+  color: var(--text);
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -10%, var(--bg-light), transparent 55%),
+    linear-gradient(165deg, var(--bg-mid) 0%, var(--bg-deep) 70%);
+  -webkit-font-smoothing: antialiased;
+}
+
+.shell {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: max(1.5rem, env(safe-area-inset-top)) 1.5rem
+    max(2rem, env(safe-area-inset-bottom));
+  text-align: center;
+}
+
+.brand {
+  margin: 0 0 2.5rem;
+  font-size: clamp(1.75rem, 6vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.distance {
+  margin: 0;
+  font-size: clamp(5rem, 22vw, 7.5rem);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--accent);
+}
+
+.label {
+  margin: 0.75rem 0 0;
+  font-size: 1rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.status {
+  margin: 3rem 0 0;
+  font-size: 0.95rem;
+  color: var(--muted);
+  opacity: 0.85;
+}
