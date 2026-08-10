@@ -42,10 +42,18 @@ body {
 }
 
 .brand {
-  margin: 0 0 2.5rem;
+  margin: 0;
   font-size: clamp(1.75rem, 6vw, 2.25rem);
   font-weight: 700;
   letter-spacing: 0.04em;
+}
+
+.hole-label {
+  margin: 0.75rem 0 2rem;
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .distance {
@@ -65,8 +73,53 @@ body {
   color: var(--muted);
 }
 
+.coords {
+  margin-top: 2.25rem;
+  display: grid;
+  gap: 0.65rem;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.coords p {
+  margin: 0;
+}
+
+.coords-label {
+  display: inline-block;
+  min-width: 3.25rem;
+  margin-right: 0.5rem;
+  color: var(--muted);
+  text-align: left;
+}
+
+.hole-nav {
+  margin-top: 2rem;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.nav-btn {
+  min-width: 5.5rem;
+  padding: 0.85rem 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--bg-light) 55%, transparent);
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-btn:active {
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-mid));
+}
+
 .status {
-  margin: 3rem 0 0;
+  margin: 1.75rem 0 0;
   font-size: 0.95rem;
   color: var(--muted);
   opacity: 0.85;

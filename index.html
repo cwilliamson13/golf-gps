@@ -27,9 +27,32 @@
   <body>
     <main class="shell">
       <p class="brand">Golf GPS</p>
-      <p class="distance" aria-live="polite">—</p>
-      <p class="label">yards to hole</p>
-      <p class="status">Coming soon</p>
+      <p class="hole-label" data-hole-label>Hole 1</p>
+
+      <p class="distance" data-distance aria-live="polite">—</p>
+      <p class="label">yards to middle</p>
+
+      <div class="coords">
+        <p>
+          <span class="coords-label">You</span>
+          <span data-you-coords>—</span>
+        </p>
+        <p>
+          <span class="coords-label">Hole</span>
+          <span data-hole-coords>—</span>
+        </p>
+      </div>
+
+      <div class="hole-nav">
+        <button type="button" class="nav-btn" data-prev-hole aria-label="Previous hole">
+          Prev
+        </button>
+        <button type="button" class="nav-btn" data-next-hole aria-label="Next hole">
+          Next
+        </button>
+      </div>
+
+      <p class="status" data-status>Starting…</p>
     </main>
     <script src="app.js" type="module"></script>
   </body>
