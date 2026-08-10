@@ -171,13 +171,6 @@
     return handicapPlus ? gross + s : gross - s;
   }
 
-  function formatScore(gross, hole) {
-    if (gross == null) return "—";
-    var s = strokesOnHole(hole);
-    if (!hasHandicap() || s === 0) return String(gross);
-    return gross + " / " + netScore(gross, hole);
-  }
-
   function holeStar(hole) {
     return hasHandicap() && strokesOnHole(hole) > 0 ? " ★" : "";
   }
@@ -277,14 +270,69 @@
     };
   }
 
-  function scoreClass(score, par) {
-    if (score == null) return "";
-    var diff = score - par;
+  function scoreClassFromDiff(diff) {
     if (diff <= -2) return "score-eagle";
     if (diff === -1) return "score-birdie";
     if (diff === 0) return "score-par";
     if (diff === 1) return "score-bogey";
     return "score-over";
+  }
+
+  function scoreClass(score, par) {
+    if (score == null) return "";
+    return scoreClassFromDiff(score - par);
+  }
+
+  function formatScore(gross, hole) {
+    if (gross == null) return "—";
+    var s = strokesOnHole(hole);
+    if (!hasHandicap() || s === 0) return String(gross);
+    return gross + " / " + netScore(gross, hole);
+  }
+
+  function formatScoreHtml(gross, hole) {
+    if (gross == null) return "—";
+    var s = strokesOnHole(hole);
+    var grossHtml =
+      '<span class="score-part ' +
+      scoreClass(gross, hole.par) +
+      '">' +
+      gross +
+      "</span>";
+    if (!hasHandicap() || s === 0) return grossHtml;
+    var net = netScore(gross, hole);
+    return (
+      grossHtml +
+      ' / <span class="score-part ' +
+      scoreClass(net, hole.par) +
+      '">' +
+      net +
+      "</span>"
+    );
+  }
+
+  function formatToParHtml(diff) {
+    return (
+      '<span class="score-part ' +
+      scoreClassFromDiff(diff) +
+      '">' +
+      formatToPar(diff) +
+      "</span>"
+    );
+  }
+
+  function formatPairHtml(grossText, netText, grossDiff, netDiff) {
+    return (
+      '<span class="score-part ' +
+      scoreClassFromDiff(grossDiff) +
+      '">' +
+      grossText +
+      '</span> / <span class="score-part ' +
+      scoreClassFromDiff(netDiff) +
+      '">' +
+      netText +
+      "</span>"
+    );
   }
 
   function bumpActivity() {
@@ -405,20 +453,44 @@
       els.roundTotal.textContent = "—";
       els.toPar.textContent = "E";
     } else if (hasHandicap()) {
-      els.roundTotal.textContent = totals.strokes + " / " + totals.net;
-      els.toPar.textContent =
-        formatToPar(totals.strokes - totals.parPlayed) +
-        " / " +
-        formatToPar(totals.net - totals.parPlayed);
+      els.roundTotal.innerHTML = formatPairHtml(
+        String(totals.strokes),
+        String(totals.net),
+        totals.strokes - totals.parPlayed,
+        totals.net - totals.parPlayed
+      );
+      els.toPar.innerHTML = formatPairHtml(
+        formatToPar(totals.strokes - totals.parPlayed),
+        formatToPar(totals.net - totals.parPlayed),
+        totals.strokes - totals.parPlayed,
+        totals.net - totals.parPlayed
+      );
     } else {
-      els.roundTotal.textContent = String(totals.strokes);
-      els.toPar.textContent = formatToPar(totals.strokes - totals.parPlayed);
+      els.roundTotal.innerHTML =
+        '<span class="score-part ' +
+        scoreClassFromDiff(totals.strokes - totals.parPlayed) +
+        '">' +
+        totals.strokes +
+        "</span>";
+      els.toPar.innerHTML = formatToParHtml(totals.strokes - totals.parPlayed);
     }
     els.openSummary.hidden = totals.scored === 0;
-    if (totals.complete && !summaryShownForComplete) {
-      summaryShownForComplete = true;
-      openSummary();
+    if (totals.complete) {
+      if (!summaryShownForComplete) {
+        summaryShownForComplete = true;
+        openSummary();
+      }
+    } else {
+      summaryShownForComplete = false;
     }
+  }
+
+  function updateDistances() {
+    if (!course) return;
+    var hole = currentHole();
+    els.distanceMid.textContent = formatDistance(distanceYards(you, hole.middle));
+    els.distanceFront.textContent = formatDistance(distanceYards(you, hole.front));
+    els.distanceBack.textContent = formatDistance(distanceYards(you, hole.back));
   }
 
   function openScorePad() {
@@ -455,18 +527,14 @@
       var score = getScore(hole.number);
       var btn = document.createElement("button");
       btn.type = "button";
-      btn.className =
-        "hole-cell" +
-        (index === holeIndex ? " is-active" : "") +
-        " " +
-        scoreClass(score, hole.par);
+      btn.className = "hole-cell" + (index === holeIndex ? " is-active" : "");
       btn.innerHTML =
         '<span class="hole-cell-num">Hole ' +
         hole.number +
         holeStar(hole) +
         "</span>" +
         '<span class="hole-cell-score">' +
-        formatScore(score, hole) +
+        formatScoreHtml(score, hole) +
         "</span>" +
         '<span class="hole-cell-par">Par ' +
         hole.par +
@@ -493,16 +561,13 @@
     els.courseName.textContent = course.name;
     els.holeLabel.textContent =
       "Hole " + hole.number + holeStar(hole) + " · Par " + hole.par;
-    els.holeScore.textContent = formatScore(score, hole);
-    els.holeScore.className =
-      "hole-score" + (score != null ? " " + scoreClass(score, hole.par) : "");
+    els.holeScore.innerHTML = formatScoreHtml(score, hole);
+    els.holeScore.className = "hole-score";
     els.holeMeta.textContent = "Hcp " + hole.handicap + " · " + yards + " yd";
     updateTeeButton();
     updateHcpButton();
 
-    els.distanceMid.textContent = formatDistance(distanceYards(you, hole.middle));
-    els.distanceFront.textContent = formatDistance(distanceYards(you, hole.front));
-    els.distanceBack.textContent = formatDistance(distanceYards(you, hole.back));
+    updateDistances();
 
     updateCollapseUi();
     renderScorecard();
@@ -548,7 +613,7 @@
     you = { lat: pos.coords.latitude, lon: pos.coords.longitude };
     var accuracyYds = Math.round(pos.coords.accuracy / 0.9144);
     setStatus("GPS ±" + accuracyYds + " yd");
-    render();
+    updateDistances();
   }
 
   function onGpsError(err) {
@@ -567,14 +632,28 @@
       els.summaryTotal.textContent = "—";
       els.summaryToPar.textContent = "E";
     } else if (hasHandicap()) {
-      els.summaryTotal.textContent = totals.strokes + " / " + totals.net;
-      els.summaryToPar.textContent =
-        formatToPar(totals.strokes - totals.parPlayed) +
-        " / " +
-        formatToPar(totals.net - totals.parPlayed);
+      els.summaryTotal.innerHTML = formatPairHtml(
+        String(totals.strokes),
+        String(totals.net),
+        totals.strokes - totals.parPlayed,
+        totals.net - totals.parPlayed
+      );
+      els.summaryToPar.innerHTML = formatPairHtml(
+        formatToPar(totals.strokes - totals.parPlayed),
+        formatToPar(totals.net - totals.parPlayed),
+        totals.strokes - totals.parPlayed,
+        totals.net - totals.parPlayed
+      );
     } else {
-      els.summaryTotal.textContent = String(totals.strokes);
-      els.summaryToPar.textContent = formatToPar(totals.strokes - totals.parPlayed);
+      els.summaryTotal.innerHTML =
+        '<span class="score-part ' +
+        scoreClassFromDiff(totals.strokes - totals.parPlayed) +
+        '">' +
+        totals.strokes +
+        "</span>";
+      els.summaryToPar.innerHTML = formatToParHtml(
+        totals.strokes - totals.parPlayed
+      );
     }
 
     if (hasHandicap()) {
@@ -605,25 +684,42 @@
         score == null
           ? "—"
           : hasHandicap()
-            ? formatToPar(score - hole.par) + " / " + formatToPar(net - hole.par)
-            : formatToPar(score - hole.par);
+            ? formatPairHtml(
+                formatToPar(score - hole.par),
+                formatToPar(net - hole.par),
+                score - hole.par,
+                net - hole.par
+              )
+            : formatToParHtml(score - hole.par);
       var runTotal =
         score == null
           ? "—"
           : hasHandicap()
-            ? runScore + " / " + runNet
-            : String(runScore);
+            ? formatPairHtml(
+                String(runScore),
+                String(runNet),
+                runScore - runPar,
+                runNet - runPar
+              )
+            : '<span class="score-part ' +
+              scoreClassFromDiff(runScore - runPar) +
+              '">' +
+              runScore +
+              "</span>";
       var runToPar =
         score == null
           ? "—"
           : hasHandicap()
-            ? formatToPar(runScore - runPar) +
-              " / " +
-              formatToPar(runNet - runPar)
-            : formatToPar(runScore - runPar);
+            ? formatPairHtml(
+                formatToPar(runScore - runPar),
+                formatToPar(runNet - runPar),
+                runScore - runPar,
+                runNet - runPar
+              )
+            : formatToParHtml(runScore - runPar);
       var row = document.createElement("button");
       row.type = "button";
-      row.className = "summary-row " + scoreClass(score, hole.par);
+      row.className = "summary-row";
       row.innerHTML =
         '<div class="summary-main">' +
         "<strong>Hole " +
@@ -637,7 +733,7 @@
         '<div class="summary-nums">' +
         '<span class="summary-hole-nums">' +
         "<span>" +
-        formatScore(score, hole) +
+        formatScoreHtml(score, hole) +
         "</span>" +
         "<span>" +
         holeToPar +
@@ -901,7 +997,17 @@
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(function () {});
+    var refreshing = false;
+    navigator.serviceWorker.addEventListener("controllerchange", function () {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
   }
+
+  try {
+    localStorage.removeItem("golf-gps-handicap-index");
+  } catch (e) {}
 
   buildPadKeys();
   loadScores();

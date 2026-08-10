@@ -1,4 +1,4 @@
-var CACHE_NAME = "golf-gps-v6";
+var CACHE_NAME = "golf-gps-v7";
 var ASSETS = [
   "./",
   "./index.html",

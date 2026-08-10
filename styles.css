@@ -420,28 +420,23 @@ body {
   color: var(--muted);
 }
 
-.hole-cell.score-eagle .hole-cell-score,
-.hole-score.score-eagle {
+.score-part.score-eagle {
   color: #7dd3fc;
 }
 
-.hole-cell.score-birdie .hole-cell-score,
-.hole-score.score-birdie {
+.score-part.score-birdie {
   color: #86efac;
 }
 
-.hole-cell.score-par .hole-cell-score,
-.hole-score.score-par {
+.score-part.score-par {
   color: var(--text);
 }
 
-.hole-cell.score-bogey .hole-cell-score,
-.hole-score.score-bogey {
+.score-part.score-bogey {
   color: #fbbf24;
 }
 
-.hole-cell.score-over .hole-cell-score,
-.hole-score.score-over {
+.score-part.score-over {
   color: #f87171;
 }
 
@@ -546,7 +541,7 @@ body {
 .summary-hole-nums,
 .summary-run-nums {
   display: grid;
-  grid-template-columns: minmax(3.4rem, auto) minmax(3.4rem, auto);
+  grid-template-columns: minmax(4.2rem, auto) minmax(4.2rem, auto);
   gap: 0.4rem;
   text-align: right;
   align-items: center;
