@@ -7,9 +7,6 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <meta name="theme-color" content="#1a3d2e" />
-    <meta name="description" content="Golf GPS — distance to the hole" />
-
-    <!-- iOS home screen -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta
@@ -18,7 +15,6 @@
     />
     <meta name="apple-mobile-web-app-title" content="Golf GPS" />
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-
     <link rel="icon" href="icons/favicon.svg" type="image/svg+xml" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="stylesheet" href="styles.css" />
@@ -27,37 +23,11 @@
   <body>
     <main class="shell">
       <p class="brand">Golf GPS</p>
-      <p class="hole-label" data-hole-label>Hole 1</p>
-
-      <p class="distance" data-distance aria-live="polite">—</p>
-      <p class="label">yards to middle</p>
-
-      <div class="coords">
-        <p>
-          <span class="coords-label">You</span>
-          <span data-you-coords>—</span>
-        </p>
-        <p>
-          <span class="coords-label">Hole</span>
-          <span data-hole-coords>—</span>
-        </p>
-      </div>
-
-      <div class="hole-nav">
-        <button type="button" class="nav-btn" data-prev-hole aria-label="Previous hole">
-          Prev
-        </button>
-        <button type="button" class="nav-btn" data-next-hole aria-label="Next hole">
-          Next
-        </button>
-      </div>
-
-      <button type="button" class="gps-btn" data-enable-gps>
-        Enable GPS
-      </button>
-
-      <p class="status" data-status>Tap Enable GPS</p>
+      <p class="label">your location</p>
+      <p class="coords-big" id="coords">—</p>
+      <p class="status" id="status">Waiting for GPS…</p>
+      <button type="button" class="gps-btn" id="refresh">Refresh GPS</button>
     </main>
-    <script src="app.js" type="module"></script>
+    <script src="app.js"></script>
   </body>
 </html>

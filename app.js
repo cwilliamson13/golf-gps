@@ -1,71 +1,43 @@
-import { course } from "./data/course.js";
-import { distanceYards, formatCoord } from "./lib/geo.js";
-import { watchPosition } from "./lib/gps.js";
+(function () {
+  var coordsEl = document.getElementById("coords");
+  var statusEl = document.getElementById("status");
+  var refreshBtn = document.getElementById("refresh");
 
-const els = {
-  holeLabel: document.querySelector("[data-hole-label]"),
-  distance: document.querySelector("[data-distance]"),
-  youCoords: document.querySelector("[data-you-coords]"),
-  holeCoords: document.querySelector("[data-hole-coords]"),
-  status: document.querySelector("[data-status]"),
-  prev: document.querySelector("[data-prev-hole]"),
-  next: document.querySelector("[data-next-hole]"),
-  enableGps: document.querySelector("[data-enable-gps]"),
-};
-
-let holeIndex = 0;
-let you = null;
-let stopWatch = null;
-
-function currentHole() {
-  return course.holes[holeIndex];
-}
-
-function render() {
-  const hole = currentHole();
-  const pin = hole.middle;
-
-  els.holeLabel.textContent = `Hole ${hole.number} · Par ${hole.par}`;
-  els.holeCoords.textContent = `${formatCoord(pin.lat)}, ${formatCoord(pin.lon)}`;
-
-  if (you) {
-    els.youCoords.textContent = `${formatCoord(you.lat)}, ${formatCoord(you.lon)}`;
-    els.distance.textContent = String(Math.round(distanceYards(you, pin)));
-  } else {
-    els.youCoords.textContent = "—";
-    els.distance.textContent = "—";
+  function setStatus(text) {
+    statusEl.textContent = text;
   }
-}
 
-function cycleHole(step) {
-  const count = course.holes.length;
-  holeIndex = (holeIndex + step + count) % count;
-  render();
-}
+  function showPosition(pos) {
+    var lat = pos.coords.latitude.toFixed(5);
+    var lon = pos.coords.longitude.toFixed(5);
+    var accuracyYds = Math.round(pos.coords.accuracy / 0.9144);
+    coordsEl.textContent = lat + ", " + lon;
+    setStatus("GPS ±" + accuracyYds + " yd");
+  }
 
-function startGps() {
-  if (stopWatch) return;
+  function showError(err) {
+    var messages = {
+      1: "Location permission denied. Check Settings → Privacy → Location Services.",
+      2: "Location unavailable.",
+      3: "Location timed out. Try Refresh GPS.",
+    };
+    setStatus(messages[err.code] || "Unable to get location.");
+  }
 
-  els.status.textContent = "Getting GPS…";
-  els.enableGps.hidden = true;
-
-  stopWatch = watchPosition(
-    (pos) => {
-      you = pos;
-      const accuracyYds = Math.round(pos.accuracyMeters / 0.9144);
-      els.status.textContent = `GPS ±${accuracyYds} yd`;
-      render();
-    },
-    (message) => {
-      stopWatch = null;
-      els.enableGps.hidden = false;
-      els.status.textContent = message;
+  function requestGps() {
+    if (!navigator.geolocation) {
+      setStatus("GPS not supported in this browser.");
+      return;
     }
-  );
-}
 
-els.prev.addEventListener("click", () => cycleHole(-1));
-els.next.addEventListener("click", () => cycleHole(1));
-els.enableGps.addEventListener("click", startGps);
+    setStatus("Getting GPS…");
+    navigator.geolocation.getCurrentPosition(showPosition, showError, {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 20000,
+    });
+  }
 
-render();
+  refreshBtn.addEventListener("click", requestGps);
+  requestGps();
+})();
