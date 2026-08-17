@@ -17,7 +17,7 @@
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
     <link rel="icon" href="icons/favicon.svg" type="image/svg+xml" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css?v=27" />
+    <link rel="stylesheet" href="styles.css?v=29" />
     <title>Golf GPS</title>
   </head>
   <body>
@@ -105,6 +105,9 @@
               <button type="button" class="nav-btn game-hammer-btn" id="gameHammerBtn" hidden>
                 Hammer
               </button>
+              <button type="button" class="nav-btn" id="gameHammerUndoBtn" hidden>
+                Undo hammer
+              </button>
               <button type="button" class="nav-btn" id="drawTeamsBtn" hidden>
                 Random team draw
               </button>
@@ -150,6 +153,34 @@
         </select>
 
         <div id="gameSettingsBlock" hidden>
+          <p class="settings-label">Teams</p>
+          <div class="hcp-sign" id="teamsEnabledGroup" role="group" aria-label="Use teams">
+            <button type="button" class="hcp-sign-btn" data-teams-enabled="yes">Yes</button>
+            <button type="button" class="hcp-sign-btn is-active" data-teams-enabled="no">
+              No
+            </button>
+          </div>
+          <div id="teamsOptions" class="teams-options" hidden>
+            <div class="team-names-row">
+              <input id="teamNameA" class="hcp-input" type="text" maxlength="16" value="Team A" />
+              <input id="teamNameB" class="hcp-input" type="text" maxlength="16" value="Team B" />
+            </div>
+            <div class="hcp-sign" id="teamRandomGroup" role="group" aria-label="Team assignment">
+              <button type="button" class="hcp-sign-btn is-active" data-team-random="manual">
+                Manual
+              </button>
+              <button type="button" class="hcp-sign-btn" data-team-random="start">
+                Random start
+              </button>
+              <button type="button" class="hcp-sign-btn" data-team-random="end">
+                Draw at end
+              </button>
+            </div>
+            <button type="button" class="pad-action" id="shuffleTeamsBtn">
+              Shuffle teams now
+            </button>
+          </div>
+
           <p class="settings-label">Players</p>
           <div class="player-count-row">
             <button type="button" class="player-count-btn" id="playerCountDec" aria-label="Fewer players">
@@ -172,32 +203,6 @@
           <div id="playersEditor" class="players-editor"></div>
           <label class="settings-label" for="mePlayerSelect">This phone is</label>
           <select id="mePlayerSelect" class="settings-select"></select>
-
-          <p class="settings-label">Teams</p>
-          <label class="settings-check">
-            <input type="checkbox" id="teamsEnabled" />
-            Use teams
-          </label>
-          <div id="teamsOptions" class="teams-options" hidden>
-            <div class="team-names-row">
-              <input id="teamNameA" class="hcp-input" type="text" maxlength="16" value="Team A" />
-              <input id="teamNameB" class="hcp-input" type="text" maxlength="16" value="Team B" />
-            </div>
-            <div class="hcp-sign" id="teamRandomGroup" role="group" aria-label="Team assignment">
-              <button type="button" class="hcp-sign-btn is-active" data-team-random="manual">
-                Manual
-              </button>
-              <button type="button" class="hcp-sign-btn" data-team-random="start">
-                Random start
-              </button>
-              <button type="button" class="hcp-sign-btn" data-team-random="end">
-                Draw at end
-              </button>
-            </div>
-            <button type="button" class="pad-action" id="shuffleTeamsBtn">
-              Shuffle teams now
-            </button>
-          </div>
         </div>
 
         <div class="pad-actions settings-footer">
@@ -320,6 +325,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=27"></script>
+    <script src="app.js?v=29"></script>
   </body>
 </html>

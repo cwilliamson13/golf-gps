@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   document.addEventListener(
     "touchmove",
     function (event) {
@@ -135,7 +135,6 @@
     playerCountInc: document.getElementById("playerCountInc"),
     playersEditor: document.getElementById("playersEditor"),
     mePlayerSelect: document.getElementById("mePlayerSelect"),
-    teamsEnabled: document.getElementById("teamsEnabled"),
     teamsOptions: document.getElementById("teamsOptions"),
     teamNameA: document.getElementById("teamNameA"),
     teamNameB: document.getElementById("teamNameB"),
@@ -161,6 +160,7 @@
     enterScoresBtn: document.getElementById("enterScoresBtn"),
     gameActions: document.getElementById("gameActions"),
     gameHammerBtn: document.getElementById("gameHammerBtn"),
+    gameHammerUndoBtn: document.getElementById("gameHammerUndoBtn"),
     drawTeamsBtn: document.getElementById("drawTeamsBtn"),
     gameBoard: document.getElementById("gameBoard"),
     gameTeamsLabel: document.getElementById("gameTeamsLabel"),
@@ -184,6 +184,7 @@
   var editPlayerIndex = -1;
   var editHcpPlus = false;
   var editTeam = "A";
+  var boardEdit = null;
 
   function isMultiMode() {
     return (
@@ -192,10 +193,6 @@
       roundState.gameType === "quota" ||
       roundState.gameType === "hammer"
     );
-  }
-
-  function inGameMode() {
-    return isMultiMode();
   }
 
   function isCompetitive() {
@@ -238,6 +235,22 @@
   function draftTeamDisplayName(key) {
     if (key === "B") return (els.teamNameB && els.teamNameB.value.trim()) || "Team B";
     return (els.teamNameA && els.teamNameA.value.trim()) || "Team A";
+  }
+
+  function teamRosterLabel(teamKey, players) {
+    var names = (players || [])
+      .filter(function (p) {
+        return (p.team === "B" ? "B" : "A") === teamKey;
+      })
+      .map(function (p) {
+        return p.name || p.id;
+      });
+    return names.length ? names.join("/") : "—";
+  }
+
+  function formatPlayerHcpLabel(player) {
+    if (player.handicap18 == null) return "--";
+    return (player.handicapPlus ? "+" : "−") + player.handicap18 + " hcp";
   }
 
   function holePoints(player, gross, hole) {
@@ -340,14 +353,31 @@
     );
   }
 
-  function saveRoundAndSync() {
-    persistRoundLocal();
+  function hasStoredPlayerScores(playerId) {
+    var map = roundState.scores[playerId];
+    if (!map) return false;
+    return Object.keys(map).some(function (h) {
+      return map[h] != null;
+    });
   }
 
-  function applyRemoteRound() {}
+  function hasAnyMultiScores() {
+    if (Object.keys(roundState.hammers || {}).length) return true;
+    return (roundState.players || []).some(function (p) {
+      return hasStoredPlayerScores(p.id);
+    });
+  }
+
+  function pruneRoundScores(players) {
+    var next = {};
+    (players || []).forEach(function (p) {
+      next[p.id] = roundState.scores[p.id] || {};
+    });
+    roundState.scores = next;
+  }
 
   function syncMeScoresFromRound() {
-    if (!inGameMode()) return;
+    if (!isMultiMode()) return;
     var mine = roundState.scores[roundState.mePlayerId] || {};
     scores = {};
     Object.keys(mine).forEach(function (h) {
@@ -362,12 +392,12 @@
   }
 
   function pushMeScoreToRound(holeNumber, value) {
-    if (!inGameMode()) return;
+    if (!isMultiMode()) return;
     var pid = roundState.mePlayerId;
     if (!roundState.scores[pid]) roundState.scores[pid] = {};
     if (value == null) delete roundState.scores[pid][holeNumber];
     else roundState.scores[pid][holeNumber] = value;
-    saveRoundAndSync();
+    persistRoundLocal();
   }
 
   function getMePlayer() {
@@ -418,7 +448,7 @@
       else scores[holeNumber] = value;
       saveScores();
     }
-    saveRoundAndSync();
+    persistRoundLocal();
   }
 
   function allPlayersScoredHole(holeNumber) {
@@ -451,12 +481,12 @@
         HCP_KEY,
         JSON.stringify({ value: handicap18, plus: handicapPlus })
       );
-    if (inGameMode()) {
+    if (isMultiMode()) {
       var me = getMePlayer();
       if (me) {
         me.handicap18 = handicap18;
         me.handicapPlus = handicapPlus;
-        saveRoundAndSync();
+        persistRoundLocal();
       }
     }
   }
@@ -687,8 +717,6 @@
     els.status.textContent = text;
   }
 
-  function updateCollapseUi() {}
-
   function updateTeeButton() {
     els.teeOpen.textContent = teeLabel(selectedTee);
   }
@@ -737,7 +765,10 @@
       roundState.teamsEnabled &&
       roundState.teamRandom === "end" &&
       !roundState.teamsDrawn;
+    var hamNow =
+      showHammer && course ? hammerForHole(currentHole().number) : null;
     els.gameHammerBtn.hidden = !showHammer;
+    els.gameHammerUndoBtn.hidden = !hamNow;
     els.drawTeamsBtn.hidden = !showDraw;
     els.gameActions.hidden = !(showHammer || showDraw);
     updateTeamsLabel();
@@ -754,21 +785,11 @@
       els.gameTeamsLabel.textContent = "Teams: random draw at end";
       return;
     }
-    var a = [];
-    var b = [];
-    roundState.players.forEach(function (p) {
-      if (p.team === "B") b.push(p.name || p.id);
-      else a.push(p.name || p.id);
-    });
     els.gameTeamsLabel.hidden = false;
     els.gameTeamsLabel.textContent =
-      teamDisplayName("A") +
-      ": " +
-      (a.join(", ") || "—") +
+      teamRosterLabel("A", roundState.players) +
       " · " +
-      teamDisplayName("B") +
-      ": " +
-      (b.join(", ") || "—");
+      teamRosterLabel("B", roundState.players);
   }
 
   function setPagerPage(page) {
@@ -813,7 +834,7 @@
         localStorage.setItem(TEE_KEY, selectedTee);
         haptic(8);
         renderTeeOptions();
-        saveRoundAndSync();
+        persistRoundLocal();
         render();
       });
       els.teeOptions.appendChild(btn);
@@ -832,22 +853,41 @@
 
   function renderPlayersEditor() {
     els.playersEditor.innerHTML = "";
+    var showTeam = draftTeamsEnabled;
+    var showHcp = draftPlayers.some(function (p) {
+      return p.handicap18 != null;
+    });
+    var showQuota = els.gameTypeSelect.value === "quota";
     draftPlayers.forEach(function (p, index) {
       var btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "player-list-btn";
+      btn.className =
+        "player-list-btn" +
+        (showTeam ? " has-team" : "") +
+        (showHcp ? " has-hcp" : "") +
+        (showQuota ? " has-quota" : "");
       btn.setAttribute("data-edit-player", String(index));
-      var bits = [p.name || "Player " + (index + 1)];
-      if (p.handicap18 != null) {
-        bits.push((p.handicapPlus ? "+" : "−") + p.handicap18);
+      var html =
+        '<span class="player-list-name">' +
+        (p.name || "Player " + (index + 1)) +
+        "</span>";
+      if (showTeam) {
+        html +=
+          '<span class="player-list-team">' +
+          draftTeamDisplayName(p.team === "B" ? "B" : "A") +
+          "</span>";
       }
-      if (draftTeamsEnabled) {
-        bits.push(draftTeamDisplayName(p.team === "B" ? "B" : "A"));
+      if (showHcp) {
+        html +=
+          '<span class="player-list-hcp">' + formatPlayerHcpLabel(p) + "</span>";
       }
-      if (els.gameTypeSelect.value === "quota") {
-        bits.push("Q" + (p.quota != null ? p.quota : 18));
+      if (showQuota) {
+        html +=
+          '<span class="player-list-quota">Q' +
+          (p.quota != null ? p.quota : 18) +
+          "</span>";
       }
-      btn.textContent = bits.join(" · ");
+      btn.innerHTML = html;
       els.playersEditor.appendChild(btn);
     });
     els.mePlayerSelect.innerHTML = "";
@@ -908,11 +948,12 @@
     renderPlayersEditor();
   }
 
-  function readDraftPlayersFromDom() {}
-
   function updateTeamsSettingsUi() {
-    draftTeamsEnabled = !!els.teamsEnabled.checked;
     els.teamsOptions.hidden = !draftTeamsEnabled;
+    document.querySelectorAll("[data-teams-enabled]").forEach(function (btn) {
+      var on = btn.getAttribute("data-teams-enabled") === "yes";
+      btn.classList.toggle("is-active", on === draftTeamsEnabled);
+    });
     document.querySelectorAll("[data-team-random]").forEach(function (btn) {
       btn.classList.toggle(
         "is-active",
@@ -931,7 +972,6 @@
 
   function resizeDraftPlayers(count) {
     count = clampPlayerCount(count);
-    readDraftPlayersFromDom();
     while (draftPlayers.length < count) {
       draftPlayers.push({
         id: uid(),
@@ -981,7 +1021,6 @@
     els.playerCountInput.value = String(
       clampPlayerCount(Math.max(2, draftPlayers.length))
     );
-    els.teamsEnabled.checked = !!roundState.teamsEnabled;
     draftTeamsEnabled = !!roundState.teamsEnabled;
     draftTeamRandom = roundState.teamRandom || "manual";
     els.teamNameA.value = (roundState.teamNames && roundState.teamNames.A) || "Team A";
@@ -993,12 +1032,24 @@
   }
 
   function closeSettingsPad() {
+    closePlayerEdit();
     els.settingsPad.hidden = true;
   }
 
   function saveSettingsFromPad() {
     var type = els.gameTypeSelect.value;
+    var wasMulti = isMultiMode();
+
     if (type === "none") {
+      if (
+        wasMulti &&
+        hasAnyMultiScores() &&
+        !window.confirm(
+          "Switch to Solo? Other players' scores will be cleared. Your hole scores stay on this phone."
+        )
+      ) {
+        return;
+      }
       roundState.gameType = "none";
       roundState.players = [];
       roundState.scores = {};
@@ -1006,14 +1057,15 @@
       roundState.teamsEnabled = false;
       roundState.teamRandom = "manual";
       roundState.teamsDrawn = false;
+      roundState.teamNames = { A: "Team A", B: "Team B" };
       persistRoundLocal();
       updatePagerMode();
       closeSettingsPad();
       render();
+      renderGameBoard();
       return;
     }
 
-    readDraftPlayersFromDom();
     var count = clampPlayerCount(parseInt(els.playerCountInput.value, 10) || 2);
     while (draftPlayers.length < count) {
       draftPlayers.push({
@@ -1027,14 +1079,49 @@
     }
     draftPlayers = draftPlayers.slice(0, count);
 
-    roundState.teamsEnabled = !!els.teamsEnabled.checked;
+    var keepIds = {};
+    draftPlayers.forEach(function (p) {
+      keepIds[p.id] = true;
+    });
+    var removingScored = (roundState.players || []).some(function (p) {
+      return !keepIds[p.id] && hasStoredPlayerScores(p.id);
+    });
+    if (
+      removingScored &&
+      !window.confirm("Remove player(s) and their scores from this game?")
+    ) {
+      els.playerCountInput.value = String(
+        clampPlayerCount(Math.max(2, roundState.players.length))
+      );
+      draftPlayers = roundState.players.map(function (p, i) {
+        return {
+          id: p.id,
+          name: normalizePlayerName(p.name, i),
+          handicap18: p.handicap18,
+          handicapPlus: !!p.handicapPlus,
+          team: p.team === "B" ? "B" : "A",
+          quota: p.quota != null ? p.quota : 18,
+        };
+      });
+      renderPlayersEditor();
+      return;
+    }
+
+    var prevTeamsEnabled = !!roundState.teamsEnabled;
+    var prevTeamRandom = roundState.teamRandom || "manual";
+    roundState.teamsEnabled = !!draftTeamsEnabled;
     roundState.teamRandom = draftTeamRandom || "manual";
     roundState.teamNames = {
       A: els.teamNameA.value.trim() || "Team A",
       B: els.teamNameB.value.trim() || "Team B",
     };
     if (roundState.teamsEnabled && roundState.teamRandom === "start") {
-      assignRandomTeams(draftPlayers);
+      var needDraw =
+        !wasMulti ||
+        !prevTeamsEnabled ||
+        prevTeamRandom !== "start" ||
+        !roundState.teamsDrawn;
+      if (needDraw) assignRandomTeams(draftPlayers);
       roundState.teamsDrawn = true;
     } else if (roundState.teamsEnabled && roundState.teamRandom === "end") {
       roundState.teamsDrawn = false;
@@ -1044,21 +1131,23 @@
       roundState.teamsDrawn = false;
     }
 
-    var wasNone = !isMultiMode();
+    var wasNone = !wasMulti;
     roundState.gameType = type;
     roundState.players = draftPlayers;
-    roundState.mePlayerId = els.mePlayerSelect.value || draftPlayers[0].id;
-    if (!roundState.scores) roundState.scores = {};
-    roundState.players.forEach(function (p) {
-      if (!roundState.scores[p.id]) roundState.scores[p.id] = {};
+    var meOk = draftPlayers.some(function (p) {
+      return p.id === els.mePlayerSelect.value;
     });
+    roundState.mePlayerId = meOk
+      ? els.mePlayerSelect.value
+      : draftPlayers[0].id;
+    pruneRoundScores(roundState.players);
     if (wasNone) {
       Object.keys(scores).forEach(function (h) {
         roundState.scores[roundState.mePlayerId][h] = scores[h];
       });
     }
     syncMeScoresFromRound();
-    saveRoundAndSync();
+    persistRoundLocal();
     updatePagerMode();
     closeSettingsPad();
     render();
@@ -1101,6 +1190,7 @@
 
   function openScorePad() {
     if (!course) return;
+    boardEdit = null;
     var hole = currentHole();
     var score = getScore(hole.number);
     padDigits = score != null ? String(score) : "";
@@ -1112,17 +1202,18 @@
 
   function closeScorePad() {
     els.scorePad.hidden = true;
+    boardEdit = null;
   }
 
   function maybeAdvanceAfterMeScore(hadScore, scored) {
     if (!scored || hadScore) return;
-    if (inGameMode()) {
+    if (isMultiMode()) {
       if (
         allPlayersScoredHole(course.holes[holeIndex].number) &&
         holeIndex < course.holes.length - 1
       ) {
         holeIndex += 1;
-        saveRoundAndSync();
+        persistRoundLocal();
       }
       return;
     }
@@ -1131,6 +1222,32 @@
 
   function commitPadScore() {
     if (!course) return;
+    if (boardEdit) {
+      var edit = boardEdit;
+      boardEdit = null;
+      var scored = false;
+      if (!padDigits) setPlayerScore(edit.playerId, edit.holeNumber, null);
+      else {
+        var boardVal = parseInt(padDigits, 10);
+        if (!isNaN(boardVal) && boardVal >= 1 && boardVal <= 15) {
+          setPlayerScore(edit.playerId, edit.holeNumber, boardVal);
+          scored = true;
+        }
+      }
+      closeScorePad();
+      haptic(14);
+      if (
+        scored &&
+        allPlayersScoredHole(edit.holeNumber) &&
+        holeIndex < course.holes.length - 1
+      ) {
+        holeIndex += 1;
+        persistRoundLocal();
+      }
+      render();
+      renderGameBoard();
+      return;
+    }
     var hole = currentHole();
     var hadScore = getScore(hole.number) != null;
     var scored = false;
@@ -1177,7 +1294,7 @@
       btn.addEventListener("click", function () {
         holeIndex = index;
         haptic(8);
-        saveRoundAndSync();
+        persistRoundLocal();
         render();
         openScorePad();
       });
@@ -1204,8 +1321,10 @@
       els.gameHammerBtn.textContent = ham
         ? "Hammer ×" + ham.multiplier * 2
         : "Hammer";
+      els.gameHammerUndoBtn.hidden = !ham;
     } else {
       els.gameHammerStatus.hidden = true;
+      els.gameHammerUndoBtn.hidden = true;
     }
     updateTeamsLabel();
 
@@ -1219,11 +1338,6 @@
         "<th>" +
         (p.name || p.id) +
         (p.id === roundState.mePlayerId ? " *" : "") +
-        (showTeams
-          ? '<span class="team-chip">' +
-            (p.team === "B" ? teamDisplayName("B") : teamDisplayName("A")) +
-            "</span>"
-          : "") +
         "</th>";
     });
     html += "</tr></thead><tbody>";
@@ -1238,17 +1352,25 @@
         "</th>";
       roundState.players.forEach(function (p) {
         var sc = getPlayerScore(p.id, h.number);
+        var cell =
+          '<td class="score-cell" data-board-pid="' +
+          p.id +
+          '" data-board-hole="' +
+          h.number +
+          '">';
         if (isQuota()) {
           var pts = holePoints(p, sc, h);
-          html +=
-            "<td>" +
-            (sc == null ? "—" : sc + (pts != null ? " <span class='pts'>(" + pts + ")</span>" : "")) +
-            "</td>";
+          cell +=
+            sc == null
+              ? "—"
+              : sc +
+                (pts != null ? " <span class='pts'>(" + pts + ")</span>" : "");
         } else if (isCompetitive()) {
-          html += "<td>" + formatPlayerScoreHtml(p, sc, h) + "</td>";
+          cell += formatPlayerScoreHtml(p, sc, h);
         } else {
-          html += "<td>" + (sc != null ? sc : "—") + "</td>";
+          cell += sc != null ? sc : "—";
         }
+        html += cell + "</td>";
       });
       html += "</tr>";
     });
@@ -1305,7 +1427,9 @@
         var t = p.team === "B" ? "B" : "A";
         html +=
           "<td>" +
-          (teamN[t] ? teamDisplayName(t) + " " + teamTot[t] : "—") +
+          (teamN[t]
+            ? teamRosterLabel(t, roundState.players) + " " + teamTot[t]
+            : "—") +
           "</td>";
       });
       html += "</tr>";
@@ -1314,8 +1438,36 @@
     els.gameBoard.innerHTML = html;
   }
 
+  function openBoardScoreEdit(playerId, holeNumber) {
+    if (!course || !isMultiMode()) return;
+    var player = null;
+    for (var i = 0; i < roundState.players.length; i++) {
+      if (roundState.players[i].id === playerId) {
+        player = roundState.players[i];
+        break;
+      }
+    }
+    if (!player) return;
+    var holeIdx = -1;
+    for (var j = 0; j < course.holes.length; j++) {
+      if (course.holes[j].number === holeNumber) {
+        holeIdx = j;
+        break;
+      }
+    }
+    if (holeIdx >= 0) holeIndex = holeIdx;
+    boardEdit = { playerId: playerId, holeNumber: holeNumber };
+    var score = getPlayerScore(playerId, holeNumber);
+    padDigits = score != null ? String(score) : "";
+    padReplaceOnType = score != null;
+    els.padTitle.textContent =
+      (player.name || player.id) + " · Hole " + holeNumber;
+    els.padValue.textContent = padDigits || "—";
+    els.scorePad.hidden = false;
+  }
+
   function openMultiScorePad() {
-    if (!course || !inGameMode()) return;
+    if (!course || !isMultiMode()) return;
     var hole = currentHole();
     multiDraft = {};
     els.multiPadTitle.textContent = "Hole " + hole.number + " scores";
@@ -1380,7 +1532,7 @@
       holeIndex < course.holes.length - 1
     ) {
       holeIndex += 1;
-      saveRoundAndSync();
+      persistRoundLocal();
     }
     render();
     renderGameBoard();
@@ -1401,8 +1553,22 @@
       cur.multiplier = cur.multiplier * 2;
       cur.byPlayerId = roundState.mePlayerId;
     }
-    saveRoundAndSync();
+    persistRoundLocal();
     haptic(16);
+    updatePagerMode();
+    renderGameBoard();
+  }
+
+  function undoHammer() {
+    if (!course || roundState.gameType !== "hammer") return;
+    var holeNum = currentHole().number;
+    var cur = hammerForHole(holeNum);
+    if (!cur) return;
+    if (cur.multiplier <= 2) delete roundState.hammers[holeNum];
+    else cur.multiplier = Math.round(cur.multiplier / 2);
+    persistRoundLocal();
+    haptic(10);
+    updatePagerMode();
     renderGameBoard();
   }
 
@@ -1471,7 +1637,7 @@
     if (!course) return;
     holeIndex = (holeIndex + step + course.holes.length) % course.holes.length;
     haptic(8);
-    saveRoundAndSync();
+    persistRoundLocal();
     render();
     renderGameBoard();
   }
@@ -1590,7 +1756,7 @@
       row.addEventListener("click", function () {
         holeIndex = index;
         haptic(8);
-        saveRoundAndSync();
+        persistRoundLocal();
         render();
         openScorePad();
       });
@@ -1633,7 +1799,7 @@
           ")"
       );
     }
-    if (inGameMode()) {
+    if (isMultiMode()) {
       lines.push("Game: " + roundState.gameType);
       roundState.players.forEach(function (p) {
         var tot = 0;
@@ -1696,13 +1862,13 @@
     if (!course) return;
     scores = {};
     saveScores();
-    if (inGameMode()) {
+    if (isMultiMode()) {
       roundState.scores = {};
       roundState.players.forEach(function (p) {
         roundState.scores[p.id] = {};
       });
       roundState.hammers = {};
-      saveRoundAndSync();
+      persistRoundLocal();
     }
     summaryShownForComplete = false;
     render();
@@ -1942,7 +2108,13 @@
     });
   });
 
-  els.teamsEnabled.addEventListener("change", updateTeamsSettingsUi);
+  document.querySelectorAll("[data-teams-enabled]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      draftTeamsEnabled = btn.getAttribute("data-teams-enabled") === "yes";
+      updateTeamsSettingsUi();
+      haptic(6);
+    });
+  });
   els.teamNameA.addEventListener("input", function () {
     if (draftTeamsEnabled) renderPlayersEditor();
   });
@@ -1965,7 +2137,7 @@
   els.drawTeamsBtn.addEventListener("click", function () {
     assignRandomTeams(roundState.players);
     roundState.teamsDrawn = true;
-    saveRoundAndSync();
+    persistRoundLocal();
     updatePagerMode();
     renderGameBoard();
     haptic(16);
@@ -1979,6 +2151,17 @@
     openMultiScorePad();
   });
   els.gameHammerBtn.addEventListener("click", toggleHammer);
+  els.gameHammerUndoBtn.addEventListener("click", undoHammer);
+  els.gameBoard.addEventListener("click", function (event) {
+    var cell = event.target.closest("[data-board-pid]");
+    if (!cell || !els.gameBoard.contains(cell)) return;
+    var pid = cell.getAttribute("data-board-pid");
+    var holeNum = parseInt(cell.getAttribute("data-board-hole"), 10);
+    if (!pid || isNaN(holeNum)) return;
+    bumpActivity();
+    openBoardScoreEdit(pid, holeNum);
+    haptic(6);
+  });
   els.multiPadClose.addEventListener("click", closeMultiScorePad);
   els.multiPadDone.addEventListener("click", commitMultiScores);
   els.multiScorePad.addEventListener("click", function (event) {
@@ -2067,7 +2250,7 @@
     .then(function (data) {
       course = data;
       if (!course.tees[selectedTee]) selectedTee = course.defaultTee || "blue";
-      if (inGameMode()) syncMeScoresFromRound();
+      if (isMultiMode()) syncMeScoresFromRound();
       updatePagerMode();
       render();
       renderGameBoard();
