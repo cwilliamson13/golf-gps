@@ -86,6 +86,7 @@
     teamsEnabled: false,
     teamRandom: "manual",
     teamsDrawn: false,
+    syncEnabled: false,
     updatedAt: 0,
   };
 
@@ -138,6 +139,8 @@
     teamsEnabled: document.getElementById("teamsEnabled"),
     teamRandomSelect: document.getElementById("teamRandomSelect"),
     shuffleTeamsBtn: document.getElementById("shuffleTeamsBtn"),
+    syncEnabled: document.getElementById("syncEnabled"),
+    syncControls: document.getElementById("syncControls"),
     syncHint: document.getElementById("syncHint"),
     roomCodeDisplay: document.getElementById("roomCodeDisplay"),
     roomCreate: document.getElementById("roomCreate"),
@@ -246,6 +249,7 @@
       roundState.teamsEnabled = !!raw.teamsEnabled;
       roundState.teamRandom = raw.teamRandom || "manual";
       roundState.teamsDrawn = !!raw.teamsDrawn;
+      roundState.syncEnabled = !!raw.syncEnabled || !!raw.roomCode;
       roundState.updatedAt = raw.updatedAt || 0;
       if (typeof raw.holeIndex === "number") holeIndex = raw.holeIndex;
     } catch (e) {}
@@ -264,6 +268,7 @@
         teamsEnabled: roundState.teamsEnabled,
         teamRandom: roundState.teamRandom,
         teamsDrawn: roundState.teamsDrawn,
+        syncEnabled: roundState.syncEnabled,
         holeIndex: holeIndex,
         updatedAt: Date.now(),
         tee: selectedTee,
@@ -285,6 +290,7 @@
       teamsEnabled: roundState.teamsEnabled,
       teamRandom: roundState.teamRandom,
       teamsDrawn: roundState.teamsDrawn,
+      syncEnabled: roundState.syncEnabled,
       updatedAt: Date.now(),
     };
   }
@@ -292,6 +298,7 @@
   function saveRoundAndSync() {
     persistRoundLocal();
     if (
+      roundState.syncEnabled &&
       roundState.roomCode &&
       window.GolfGpsSync &&
       GolfGpsSync.isConfigured() &&
@@ -833,11 +840,18 @@
           "</div>"
         : "";
       row.innerHTML =
+        '<div class="player-name-hcp-row">' +
         '<input class="hcp-input player-name-input" data-pi="' +
         index +
         '" type="text" maxlength="16" value="' +
         (p.name || "").replace(/"/g, "&quot;") +
+        '" placeholder="Name" />' +
+        '<input class="hcp-input player-hcp-input" data-pi="' +
+        index +
+        '" type="number" inputmode="numeric" min="0" max="54" placeholder="HCP" value="' +
+        (p.handicap18 != null ? p.handicap18 : "") +
         '" />' +
+        "</div>" +
         teamBlock +
         '<div class="hcp-sign player-hcp-sign-row" role="group" aria-label="Handicap type">' +
         '<button type="button" class="hcp-sign-btn' +
@@ -850,12 +864,7 @@
         '" data-pi="' +
         index +
         '" data-player-hcp-sign="plus">+ HCP</button>' +
-        "</div>" +
-        '<input class="hcp-input player-hcp-input" data-pi="' +
-        index +
-        '" type="number" inputmode="numeric" min="0" max="54" placeholder="—" value="' +
-        (p.handicap18 != null ? p.handicap18 : "") +
-        '" />';
+        "</div>";
       els.playersEditor.appendChild(row);
     });
     els.mePlayerSelect.innerHTML = "";
@@ -932,6 +941,29 @@
   function updateSettingsGameVisibility() {
     var t = els.gameTypeSelect.value;
     els.gameSettingsBlock.hidden = t === "none";
+    updateSettingsSaveLabel();
+  }
+
+  function updateSyncSettingsUi() {
+    var on = !!els.syncEnabled.checked;
+    els.syncControls.hidden = !on;
+    if (!on && roundState.roomCode) {
+      if (window.GolfGpsSync) GolfGpsSync.disconnect();
+      roundState.roomCode = null;
+      roundState.syncEnabled = false;
+      persistRoundLocal();
+      updateRoomUi();
+      updatePagerMode();
+    }
+  }
+
+  function updateSettingsSaveLabel() {
+    var selected = els.gameTypeSelect.value;
+    if (selected !== "none" && !isMultiMode()) {
+      els.settingsSave.textContent = "Create game";
+    } else {
+      els.settingsSave.textContent = "Save";
+    }
   }
 
   function openSettingsPad() {
@@ -956,15 +988,18 @@
     els.teamRandomSelect.value = roundState.teamRandom || "manual";
     draftTeamsEnabled = !!roundState.teamsEnabled;
     draftTeamRandom = els.teamRandomSelect.value;
+    els.syncEnabled.checked = !!(roundState.syncEnabled || roundState.roomCode);
     updateTeamsSettingsUi();
+    updateSyncSettingsUi();
     updateSettingsGameVisibility();
+    updateSettingsSaveLabel();
     updateRoomUi();
     if (window.GolfGpsSync && !GolfGpsSync.isConfigured()) {
       els.syncHint.textContent =
-        "Room sync needs Firebase config (see SYNC.md). Local multi-player still works on this phone.";
+        "Needs Firebase config (see SYNC.md). Local multi-player still works on this phone.";
     } else {
       els.syncHint.textContent =
-        "Optional: create a room code so other phones share scores (tiny data, GPS never syncs).";
+        "Create a room code so other phones share scores (tiny data, GPS never syncs).";
     }
     els.settingsPad.hidden = false;
   }
@@ -994,6 +1029,7 @@
       roundState.teamsEnabled = false;
       roundState.teamRandom = "manual";
       roundState.teamsDrawn = false;
+      roundState.syncEnabled = false;
       if (roundState.roomCode && window.GolfGpsSync) {
         GolfGpsSync.disconnect();
         roundState.roomCode = null;
@@ -1020,6 +1056,11 @@
 
     roundState.teamsEnabled = !!els.teamsEnabled.checked;
     roundState.teamRandom = els.teamRandomSelect.value || "manual";
+    roundState.syncEnabled = !!els.syncEnabled.checked;
+    if (!roundState.syncEnabled) {
+      if (roundState.roomCode && window.GolfGpsSync) GolfGpsSync.disconnect();
+      roundState.roomCode = null;
+    }
     if (roundState.teamsEnabled && roundState.teamRandom === "start") {
       assignRandomTeams(draftPlayers);
       roundState.teamsDrawn = true;
@@ -1729,6 +1770,7 @@
 
   function reconnectRoomIfNeeded() {
     if (
+      !roundState.syncEnabled ||
       !roundState.roomCode ||
       !window.GolfGpsSync ||
       !GolfGpsSync.isConfigured()
@@ -1915,6 +1957,10 @@
 
   els.teamsEnabled.addEventListener("change", updateTeamsSettingsUi);
   els.teamRandomSelect.addEventListener("change", updateTeamsSettingsUi);
+  els.syncEnabled.addEventListener("change", function () {
+    updateSyncSettingsUi();
+    haptic(6);
+  });
   els.shuffleTeamsBtn.addEventListener("click", function () {
     readDraftPlayersFromDom();
     assignRandomTeams(draftPlayers);
@@ -1946,6 +1992,9 @@
     GolfGpsSync.createRoom(roundPayload())
       .then(function (code) {
         roundState.roomCode = code;
+        roundState.syncEnabled = true;
+        els.syncEnabled.checked = true;
+        updateSyncSettingsUi();
         persistRoundLocal();
         GolfGpsSync.subscribe(applyRemoteRound);
         updateRoomUi();
@@ -1967,6 +2016,7 @@
     GolfGpsSync.joinRoom(code)
       .then(function (data) {
         roundState.roomCode = data.roomCode || String(code).toUpperCase();
+        roundState.syncEnabled = true;
         applyRemoteRound(data);
         if (!roundState.mePlayerId && roundState.players[0]) {
           roundState.mePlayerId = roundState.players[0].id;
