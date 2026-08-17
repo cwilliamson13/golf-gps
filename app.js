@@ -78,7 +78,6 @@
 
   var roundState = {
     gameType: "none",
-    roomCode: null,
     mePlayerId: "p1",
     players: [],
     scores: {},
@@ -86,7 +85,6 @@
     teamsEnabled: false,
     teamRandom: "manual",
     teamsDrawn: false,
-    syncEnabled: false,
     updatedAt: 0,
   };
 
@@ -137,16 +135,8 @@
     playersEditor: document.getElementById("playersEditor"),
     mePlayerSelect: document.getElementById("mePlayerSelect"),
     teamsEnabled: document.getElementById("teamsEnabled"),
-    teamRandomSelect: document.getElementById("teamRandomSelect"),
+    teamsOptions: document.getElementById("teamsOptions"),
     shuffleTeamsBtn: document.getElementById("shuffleTeamsBtn"),
-    syncEnabled: document.getElementById("syncEnabled"),
-    syncControls: document.getElementById("syncControls"),
-    syncHint: document.getElementById("syncHint"),
-    roomCodeDisplay: document.getElementById("roomCodeDisplay"),
-    roomCreate: document.getElementById("roomCreate"),
-    roomLeave: document.getElementById("roomLeave"),
-    roomJoinInput: document.getElementById("roomJoinInput"),
-    roomJoin: document.getElementById("roomJoin"),
     settingsClose: document.getElementById("settingsClose"),
     settingsSave: document.getElementById("settingsSave"),
     gameBackPlay: document.getElementById("gameBackPlay"),
@@ -160,7 +150,6 @@
     drawTeamsBtn: document.getElementById("drawTeamsBtn"),
     gameBoard: document.getElementById("gameBoard"),
     gameTeamsLabel: document.getElementById("gameTeamsLabel"),
-    gameRoomLabel: document.getElementById("gameRoomLabel"),
     multiScorePad: document.getElementById("multiScorePad"),
     multiPadTitle: document.getElementById("multiPadTitle"),
     multiScoreList: document.getElementById("multiScoreList"),
@@ -241,7 +230,6 @@
       var raw = JSON.parse(localStorage.getItem(ROUND_KEY) || "null");
       if (!raw || typeof raw !== "object") return;
       roundState.gameType = raw.gameType || "none";
-      roundState.roomCode = raw.roomCode || null;
       roundState.mePlayerId = raw.mePlayerId || "p1";
       roundState.players = Array.isArray(raw.players) ? raw.players : [];
       roundState.scores = raw.scores || {};
@@ -249,7 +237,6 @@
       roundState.teamsEnabled = !!raw.teamsEnabled;
       roundState.teamRandom = raw.teamRandom || "manual";
       roundState.teamsDrawn = !!raw.teamsDrawn;
-      roundState.syncEnabled = !!raw.syncEnabled || !!raw.roomCode;
       roundState.updatedAt = raw.updatedAt || 0;
       if (typeof raw.holeIndex === "number") holeIndex = raw.holeIndex;
     } catch (e) {}
@@ -260,7 +247,6 @@
       ROUND_KEY,
       JSON.stringify({
         gameType: roundState.gameType,
-        roomCode: roundState.roomCode,
         mePlayerId: roundState.mePlayerId,
         players: roundState.players,
         scores: roundState.scores,
@@ -268,7 +254,6 @@
         teamsEnabled: roundState.teamsEnabled,
         teamRandom: roundState.teamRandom,
         teamsDrawn: roundState.teamsDrawn,
-        syncEnabled: roundState.syncEnabled,
         holeIndex: holeIndex,
         updatedAt: Date.now(),
         tee: selectedTee,
@@ -276,62 +261,11 @@
     );
   }
 
-  function roundPayload() {
-    return {
-      courseId: "olde-salem-greens",
-      tee: selectedTee,
-      gameType: roundState.gameType,
-      roomCode: roundState.roomCode,
-      holeIndex: holeIndex,
-      mePlayerId: roundState.mePlayerId,
-      players: roundState.players,
-      scores: roundState.scores,
-      hammers: roundState.hammers,
-      teamsEnabled: roundState.teamsEnabled,
-      teamRandom: roundState.teamRandom,
-      teamsDrawn: roundState.teamsDrawn,
-      syncEnabled: roundState.syncEnabled,
-      updatedAt: Date.now(),
-    };
-  }
-
   function saveRoundAndSync() {
     persistRoundLocal();
-    if (
-      roundState.syncEnabled &&
-      roundState.roomCode &&
-      window.GolfGpsSync &&
-      GolfGpsSync.isConfigured() &&
-      !GolfGpsSync.isApplyingRemote()
-    ) {
-      GolfGpsSync.pushRound(roundPayload()).catch(function () {});
-    }
   }
 
-  function applyRemoteRound(data) {
-    if (!data) return;
-    roundState.gameType = data.gameType || roundState.gameType;
-    roundState.roomCode = data.roomCode || roundState.roomCode;
-    roundState.players = data.players || roundState.players;
-    roundState.scores = data.scores || {};
-    roundState.hammers = data.hammers || {};
-    roundState.teamsEnabled = !!data.teamsEnabled;
-    roundState.teamRandom = data.teamRandom || "manual";
-    roundState.teamsDrawn = !!data.teamsDrawn;
-    if (data.mePlayerId) {
-      /* keep local mePlayerId — each phone picks who they are */
-    }
-    if (typeof data.holeIndex === "number") holeIndex = data.holeIndex;
-    if (data.tee) {
-      selectedTee = data.tee;
-      localStorage.setItem(TEE_KEY, selectedTee);
-    }
-    persistRoundLocal();
-    syncMeScoresFromRound();
-    updatePagerMode();
-    render();
-    renderGameBoard();
-  }
+  function applyRemoteRound() {}
 
   function syncMeScoresFromRound() {
     if (!inGameMode()) return;
@@ -711,9 +645,9 @@
 
     if (roundState.gameType === "hammer") els.gameTitle.textContent = "Hammer";
     else if (roundState.gameType === "stroke")
-      els.gameTitle.textContent = "Stroke play";
+      els.gameTitle.textContent = "Stroke Play";
     else if (roundState.gameType === "track")
-      els.gameTitle.textContent = "Scores";
+      els.gameTitle.textContent = "Track Scores";
     else els.gameTitle.textContent = "Scorecard";
 
     var showHammer = roundState.gameType === "hammer";
@@ -725,13 +659,6 @@
     els.gameHammerBtn.hidden = !showHammer;
     els.drawTeamsBtn.hidden = !showDraw;
     els.gameActions.hidden = !(showHammer || showDraw);
-
-    if (roundState.roomCode) {
-      els.gameRoomLabel.hidden = false;
-      els.gameRoomLabel.textContent = "Room " + roundState.roomCode;
-    } else {
-      els.gameRoomLabel.hidden = true;
-    }
     updateTeamsLabel();
   }
 
@@ -823,48 +750,46 @@
       row.className = "player-edit-row";
       var minusActive = !p.handicapPlus ? " is-active" : "";
       var plusActive = p.handicapPlus ? " is-active" : "";
-      var teamA = (!p.team || p.team === "A" ? " is-active" : "");
+      var teamA = !p.team || p.team === "A" ? " is-active" : "";
       var teamB = p.team === "B" ? " is-active" : "";
       var teamBlock = draftTeamsEnabled
-        ? '<div class="hcp-sign player-team-row" role="group" aria-label="Team">' +
+        ? '<div class="hcp-sign player-inline-sign" role="group" aria-label="Team">' +
           '<button type="button" class="hcp-sign-btn' +
           teamA +
           '" data-pi="' +
           index +
-          '" data-player-team="A">Team A</button>' +
+          '" data-player-team="A">A</button>' +
           '<button type="button" class="hcp-sign-btn' +
           teamB +
           '" data-pi="' +
           index +
-          '" data-player-team="B">Team B</button>' +
+          '" data-player-team="B">B</button>' +
           "</div>"
         : "";
       row.innerHTML =
-        '<div class="player-name-hcp-row">' +
         '<input class="hcp-input player-name-input" data-pi="' +
         index +
         '" type="text" maxlength="16" value="' +
         (p.name || "").replace(/"/g, "&quot;") +
         '" placeholder="Name" />' +
+        '<div class="hcp-sign player-inline-sign" role="group" aria-label="Handicap type">' +
+        '<button type="button" class="hcp-sign-btn' +
+        minusActive +
+        '" data-pi="' +
+        index +
+        '" data-player-hcp-sign="minus">−</button>' +
+        '<button type="button" class="hcp-sign-btn' +
+        plusActive +
+        '" data-pi="' +
+        index +
+        '" data-player-hcp-sign="plus">+</button>' +
+        "</div>" +
         '<input class="hcp-input player-hcp-input" data-pi="' +
         index +
         '" type="number" inputmode="numeric" min="0" max="54" placeholder="HCP" value="' +
         (p.handicap18 != null ? p.handicap18 : "") +
         '" />' +
-        "</div>" +
-        teamBlock +
-        '<div class="hcp-sign player-hcp-sign-row" role="group" aria-label="Handicap type">' +
-        '<button type="button" class="hcp-sign-btn' +
-        minusActive +
-        '" data-pi="' +
-        index +
-        '" data-player-hcp-sign="minus">− HCP</button>' +
-        '<button type="button" class="hcp-sign-btn' +
-        plusActive +
-        '" data-pi="' +
-        index +
-        '" data-player-hcp-sign="plus">+ HCP</button>' +
-        "</div>";
+        teamBlock;
       els.playersEditor.appendChild(row);
     });
     els.mePlayerSelect.innerHTML = "";
@@ -910,9 +835,15 @@
 
   function updateTeamsSettingsUi() {
     draftTeamsEnabled = !!els.teamsEnabled.checked;
-    els.teamRandomSelect.disabled = !draftTeamsEnabled;
+    els.teamsOptions.hidden = !draftTeamsEnabled;
+    document.querySelectorAll("[data-team-random]").forEach(function (btn) {
+      btn.classList.toggle(
+        "is-active",
+        btn.getAttribute("data-team-random") === draftTeamRandom
+      );
+    });
     els.shuffleTeamsBtn.hidden =
-      !draftTeamsEnabled || els.teamRandomSelect.value === "end";
+      !draftTeamsEnabled || draftTeamRandom === "end";
     renderPlayersEditor();
   }
 
@@ -985,38 +916,16 @@
       clampPlayerCount(Math.max(2, draftPlayers.length))
     );
     els.teamsEnabled.checked = !!roundState.teamsEnabled;
-    els.teamRandomSelect.value = roundState.teamRandom || "manual";
     draftTeamsEnabled = !!roundState.teamsEnabled;
-    draftTeamRandom = els.teamRandomSelect.value;
-    els.syncEnabled.checked = !!(roundState.syncEnabled || roundState.roomCode);
+    draftTeamRandom = roundState.teamRandom || "manual";
     updateTeamsSettingsUi();
-    updateSyncSettingsUi();
     updateSettingsGameVisibility();
     updateSettingsSaveLabel();
-    updateRoomUi();
-    if (window.GolfGpsSync && !GolfGpsSync.isConfigured()) {
-      els.syncHint.textContent =
-        "Needs Firebase config (see SYNC.md). Local multi-player still works on this phone.";
-    } else {
-      els.syncHint.textContent =
-        "Create a room code so other phones share scores (tiny data, GPS never syncs).";
-    }
     els.settingsPad.hidden = false;
   }
 
   function closeSettingsPad() {
     els.settingsPad.hidden = true;
-  }
-
-  function updateRoomUi() {
-    if (roundState.roomCode) {
-      els.roomCodeDisplay.hidden = false;
-      els.roomCodeDisplay.textContent = "Room " + roundState.roomCode;
-      els.roomLeave.hidden = false;
-    } else {
-      els.roomCodeDisplay.hidden = true;
-      els.roomLeave.hidden = true;
-    }
   }
 
   function saveSettingsFromPad() {
@@ -1029,11 +938,6 @@
       roundState.teamsEnabled = false;
       roundState.teamRandom = "manual";
       roundState.teamsDrawn = false;
-      roundState.syncEnabled = false;
-      if (roundState.roomCode && window.GolfGpsSync) {
-        GolfGpsSync.disconnect();
-        roundState.roomCode = null;
-      }
       persistRoundLocal();
       updatePagerMode();
       closeSettingsPad();
@@ -1055,12 +959,7 @@
     draftPlayers = draftPlayers.slice(0, count);
 
     roundState.teamsEnabled = !!els.teamsEnabled.checked;
-    roundState.teamRandom = els.teamRandomSelect.value || "manual";
-    roundState.syncEnabled = !!els.syncEnabled.checked;
-    if (!roundState.syncEnabled) {
-      if (roundState.roomCode && window.GolfGpsSync) GolfGpsSync.disconnect();
-      roundState.roomCode = null;
-    }
+    roundState.teamRandom = draftTeamRandom || "manual";
     if (roundState.teamsEnabled && roundState.teamRandom === "start") {
       assignRandomTeams(draftPlayers);
       roundState.teamsDrawn = true;
