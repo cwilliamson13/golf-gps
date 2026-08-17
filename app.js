@@ -340,51 +340,95 @@
     }, 0);
   }
 
-  function teamCombinedScore(teamKey) {
+  function hammerHoleStake(hole) {
+    var ham = hammerForHole(hole.number);
+    return ham ? ham.multiplier : 1;
+  }
+
+  function hammerPointsForTeam(teamKey) {
+    if (!course) return null;
+    var pts = 0;
+    var played = 0;
+    course.holes.forEach(function (h) {
+      var a = teamHoleScore("A", h);
+      var b = teamHoleScore("B", h);
+      if (a == null || b == null) return;
+      played += 1;
+      if (a === b) return;
+      var winner = a < b ? "A" : "B";
+      if (winner === teamKey) pts += hammerHoleStake(h);
+    });
+    if (!played) return null;
+    return pts;
+  }
+
+  function teamStrokeTotal(teamKey) {
+    if (!course) return null;
+    var tot = 0;
+    var n = 0;
+    course.holes.forEach(function (h) {
+      var hs = teamHoleScore(teamKey, h);
+      if (hs == null) return;
+      tot += hs;
+      n += 1;
+    });
+    if (!n) return null;
+    return tot;
+  }
+
+  function teamQuotaResult(teamKey) {
     var players = roundState.players.filter(function (p) {
       return (p.team === "B" ? "B" : "A") === teamKey;
     });
-    if (isQuota()) {
-      var pts = 0;
-      var quota = 0;
-      var any = false;
-      players.forEach(function (p) {
-        var has = course.holes.some(function (h) {
-          return getPlayerScore(p.id, h.number) != null;
-        });
-        if (!has) return;
-        any = true;
-        pts += playerQuotaTotal(p);
-        quota += p.quota != null ? p.quota : 18;
+    var pts = 0;
+    var quota = 0;
+    var any = false;
+    players.forEach(function (p) {
+      var has = course.holes.some(function (h) {
+        return getPlayerScore(p.id, h.number) != null;
       });
-      if (!any) return null;
-      return { text: pts + "/" + quota, value: pts - quota };
+      if (!has) return;
+      any = true;
+      pts += playerQuotaTotal(p);
+      quota += p.quota != null ? p.quota : 18;
+    });
+    if (!any) return null;
+    return { text: pts + "/" + quota, value: pts - quota };
+  }
+
+  function teamMatchPoints(teamKey) {
+    if (!teamsVisible()) return null;
+    if (isQuota()) return teamQuotaResult(teamKey);
+    if (roundState.gameType === "hammer") {
+      var hp = hammerPointsForTeam(teamKey);
+      if (hp == null) return null;
+      return { text: String(hp), value: hp };
     }
-    var tot = 0;
-    var n = 0;
-    if (teamsVisible() && teamScoreModeSupports()) {
-      course.holes.forEach(function (h) {
-        var hs = teamHoleScore(teamKey, h);
-        if (hs == null) return;
-        tot += hs;
-        n += 1;
-      });
-    } else {
-      players.forEach(function (p) {
-        var r = playerStrokeTotal(p);
-        if (!r.n) return;
-        tot += gameUsesHandicap() && playerHcp(p) ? r.net : r.tot;
-        n += r.n;
-      });
-    }
-    if (!n) return null;
-    return { text: String(tot), value: tot };
+    var strokes = teamStrokeTotal(teamKey);
+    if (strokes == null) return null;
+    return { text: String(strokes), value: strokes };
   }
 
   function teamScoreModeLabel() {
     return roundState.teamScoreMode === "cumulative"
       ? "Cumulative"
       : "Best ball";
+  }
+
+  function gameTitleText() {
+    var base = "Scorecard";
+    if (roundState.gameType === "hammer") base = "Hammer";
+    else if (roundState.gameType === "stroke") base = "Stroke Play";
+    else if (roundState.gameType === "quota") base = "Quota Points";
+    else if (roundState.gameType === "track") base = "Track Scores";
+    if (
+      teamsVisible() &&
+      teamScoreModeSupports() &&
+      (roundState.gameType === "hammer" || roundState.gameType === "stroke")
+    ) {
+      return base + " (" + teamScoreModeLabel() + ")";
+    }
+    return base;
   }
 
   function formatPlayerHcpLabel(player) {
@@ -953,14 +997,7 @@
       ? "Swipe for scoreboard →"
       : "Swipe for scorecard →";
 
-    if (roundState.gameType === "hammer") els.gameTitle.textContent = "Hammer";
-    else if (roundState.gameType === "stroke")
-      els.gameTitle.textContent = "Stroke Play";
-    else if (roundState.gameType === "quota")
-      els.gameTitle.textContent = "Quota Points";
-    else if (roundState.gameType === "track")
-      els.gameTitle.textContent = "Track Scores";
-    else els.gameTitle.textContent = "Scorecard";
+    els.gameTitle.textContent = gameTitleText();
 
     updatePlayGameActions();
     updateTeamsLabel();
@@ -1025,14 +1062,11 @@
     }
     var aLabel = teamRosterLabel("A", roundState.players);
     var bLabel = teamRosterLabel("B", roundState.players);
-    var aScore = teamCombinedScore("A");
-    var bScore = teamCombinedScore("B");
+    var aScore = teamMatchPoints("A");
+    var bScore = teamMatchPoints("B");
     els.gameTeamsLabel.hidden = false;
     if (aScore && bScore) {
       els.gameTeamsLabel.innerHTML =
-        (teamScoreModeSupports()
-          ? '<span class="team-vs-mode">' + teamScoreModeLabel() + "</span>"
-          : "") +
         '<span class="team-vs-side">' +
         aLabel +
         " <strong>" +
@@ -1045,11 +1079,7 @@
         bLabel +
         "</span>";
     } else {
-      els.gameTeamsLabel.textContent =
-        (teamScoreModeSupports() ? teamScoreModeLabel() + " · " : "") +
-        aLabel +
-        " vs " +
-        bLabel;
+      els.gameTeamsLabel.textContent = aLabel + " vs " + bLabel;
     }
   }
 
@@ -1752,13 +1782,10 @@
       else html += '<td class="' + sep.trim() + '">' + r.tot + "</td>";
     });
     html += "</tr>";
-    if (showTeams && aCount && bCount && !isQuota()) {
-      var aScore = teamCombinedScore("A");
-      var bScore = teamCombinedScore("B");
-      html +=
-        '<tr class="team-match-row"><th>' +
-        (teamScoreModeSupports() ? teamScoreModeLabel() : "Team") +
-        "</th>";
+    if (showTeams && aCount && bCount) {
+      var aScore = teamMatchPoints("A");
+      var bScore = teamMatchPoints("B");
+      html += '<tr class="team-match-row"><th>Points</th>';
       if (isHammer) html += "<td></td>";
       html +=
         '<td colspan="' +
@@ -1779,32 +1806,6 @@
         "</span>" +
         '<span class="team-match-score">' +
         (bScore ? bScore.text : "—") +
-        "</span></td>";
-      html += "</tr>";
-    } else if (showTeams && aCount && bCount && isQuota()) {
-      var aQ = teamCombinedScore("A");
-      var bQ = teamCombinedScore("B");
-      html += '<tr class="team-match-row"><th>Team</th>';
-      if (isHammer) html += "<td></td>";
-      html +=
-        '<td colspan="' +
-        aCount +
-        '" class="team-match-cell">' +
-        '<span class="team-match-names">' +
-        teamRosterLabel("A", roundState.players) +
-        "</span>" +
-        '<span class="team-match-score">' +
-        (aQ ? aQ.text : "—") +
-        "</span></td>";
-      html +=
-        '<td colspan="' +
-        bCount +
-        '" class="team-match-cell team-sep">' +
-        '<span class="team-match-names">' +
-        teamRosterLabel("B", roundState.players) +
-        "</span>" +
-        '<span class="team-match-score">' +
-        (bQ ? bQ.text : "—") +
         "</span></td>";
       html += "</tr>";
     }
