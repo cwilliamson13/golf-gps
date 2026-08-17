@@ -102,6 +102,7 @@
     holeScore: document.getElementById("holeScore"),
     holeMeta: document.getElementById("holeMeta"),
     strokeHint: document.getElementById("strokeHint"),
+    hammerHint: document.getElementById("hammerHint"),
     teeOpen: document.getElementById("teeOpen"),
     hcpOpen: document.getElementById("hcpOpen"),
     settingsOpen: document.getElementById("settingsOpen"),
@@ -944,6 +945,7 @@
       els.gameHammerBtn.hidden = true;
       els.gameHammerUndoBtn.hidden = true;
       els.drawTeamsBtn.hidden = true;
+      updateHammerHint();
       return;
     }
     var showHammer = roundState.gameType === "hammer";
@@ -955,12 +957,29 @@
       showHammer && course ? hammerForHole(currentHole().number) : null;
     els.gameHammerBtn.hidden = !showHammer;
     if (showHammer) {
-      els.gameHammerBtn.textContent = hamNow
-        ? "Hammer ×" + hamNow.multiplier * 2
-        : "Hammer";
+      if (!hamNow) els.gameHammerBtn.textContent = "Hammer to 2x";
+      else if (hamNow.multiplier >= 8)
+        els.gameHammerBtn.textContent = "Clear hammer";
+      else
+        els.gameHammerBtn.textContent =
+          "Hammer to " + hamNow.multiplier * 2 + "x";
     }
     els.gameHammerUndoBtn.hidden = !hamNow;
     els.drawTeamsBtn.hidden = !showDraw;
+    updateHammerHint();
+  }
+
+  function updateHammerHint() {
+    if (!els.hammerHint) return;
+    if (roundState.gameType !== "hammer" || !course || !isMultiMode()) {
+      els.hammerHint.hidden = true;
+      return;
+    }
+    var ham = hammerForHole(currentHole().number);
+    els.hammerHint.hidden = false;
+    els.hammerHint.textContent = ham
+      ? "Hammer " + ham.multiplier + "x this hole"
+      : "No hammer this hole";
   }
 
   function updateTeamsLabel() {
@@ -1523,6 +1542,36 @@
     return roundState.hammers[holeNumber] || null;
   }
 
+  function setHoleHammer(holeNumber, multiplier) {
+    if (multiplier == null) delete roundState.hammers[holeNumber];
+    else {
+      roundState.hammers[holeNumber] = {
+        multiplier: multiplier,
+        byPlayerId: roundState.mePlayerId,
+      };
+    }
+    persistRoundLocal();
+    updatePlayGameActions();
+    render();
+    renderGameBoard();
+  }
+
+  function cycleHoleHammer(holeNumber) {
+    if (roundState.gameType !== "hammer") return;
+    var cur = hammerForHole(holeNumber);
+    if (!cur) setHoleHammer(holeNumber, 2);
+    else if (cur.multiplier >= 8) setHoleHammer(holeNumber, null);
+    else setHoleHammer(holeNumber, cur.multiplier * 2);
+  }
+
+  function stepDownHoleHammer(holeNumber) {
+    if (roundState.gameType !== "hammer") return;
+    var cur = hammerForHole(holeNumber);
+    if (!cur) return;
+    if (cur.multiplier <= 2) setHoleHammer(holeNumber, null);
+    else setHoleHammer(holeNumber, Math.round(cur.multiplier / 2));
+  }
+
   function renderGameBoard() {
     if (!course || !isMultiMode()) return;
     var hole = currentHole();
@@ -1532,8 +1581,8 @@
     if (roundState.gameType === "hammer") {
       els.gameHammerStatus.hidden = false;
       els.gameHammerStatus.textContent = ham
-        ? "Hammer ×" + ham.multiplier
-        : "No hammer this hole";
+        ? "Current hole: " + ham.multiplier + "x"
+        : "Current hole: no hammer";
     } else {
       els.gameHammerStatus.hidden = true;
     }
@@ -1541,6 +1590,7 @@
     updateTeamsLabel();
 
     var showTeams = teamsVisible();
+    var isHammer = roundState.gameType === "hammer";
     var players = boardPlayers();
     var aCount = players.filter(function (p) {
       return p.team !== "B";
@@ -1567,10 +1617,25 @@
       html +=
         '<tr class="' +
         (idx === holeIndex ? "is-active" : "") +
-        '"><th>' +
-        h.number +
-        (hHam ? ' <span class="hammer-tag">×' + hHam.multiplier + "</span>" : "") +
-        "</th>";
+        '"><th>';
+      if (isHammer) {
+        html +=
+          '<button type="button" class="hole-hammer-btn' +
+          (hHam ? " is-on" : "") +
+          '" data-hammer-hole="' +
+          h.number +
+          '" aria-label="Adjust hammer for hole ' +
+          h.number +
+          '">' +
+          h.number +
+          (hHam
+            ? ' <span class="hammer-tag">' + hHam.multiplier + "x</span>"
+            : ' <span class="hammer-tag is-off">off</span>') +
+          "</button>";
+      } else {
+        html += String(h.number);
+      }
+      html += "</th>";
       players.forEach(function (p, index) {
         var sc = getPlayerScore(p.id, h.number);
         var cell =
@@ -1788,36 +1853,14 @@
 
   function toggleHammer() {
     if (!course || roundState.gameType !== "hammer") return;
-    var holeNum = currentHole().number;
-    var cur = hammerForHole(holeNum);
-    if (!cur) {
-      roundState.hammers[holeNum] = {
-        multiplier: 2,
-        byPlayerId: roundState.mePlayerId,
-      };
-    } else if (cur.multiplier >= 8) {
-      delete roundState.hammers[holeNum];
-    } else {
-      cur.multiplier = cur.multiplier * 2;
-      cur.byPlayerId = roundState.mePlayerId;
-    }
-    persistRoundLocal();
+    cycleHoleHammer(currentHole().number);
     haptic(16);
-    updatePlayGameActions();
-    renderGameBoard();
   }
 
   function undoHammer() {
     if (!course || roundState.gameType !== "hammer") return;
-    var holeNum = currentHole().number;
-    var cur = hammerForHole(holeNum);
-    if (!cur) return;
-    if (cur.multiplier <= 2) delete roundState.hammers[holeNum];
-    else cur.multiplier = Math.round(cur.multiplier / 2);
-    persistRoundLocal();
+    stepDownHoleHammer(currentHole().number);
     haptic(10);
-    updatePlayGameActions();
-    renderGameBoard();
   }
 
   function render() {
@@ -2415,6 +2458,16 @@
   els.gameHammerBtn.addEventListener("click", toggleHammer);
   els.gameHammerUndoBtn.addEventListener("click", undoHammer);
   els.gameBoard.addEventListener("click", function (event) {
+    var hammerBtn = event.target.closest("[data-hammer-hole]");
+    if (hammerBtn && els.gameBoard.contains(hammerBtn)) {
+      var hammerHole = parseInt(hammerBtn.getAttribute("data-hammer-hole"), 10);
+      if (!isNaN(hammerHole)) {
+        bumpActivity();
+        cycleHoleHammer(hammerHole);
+        haptic(10);
+      }
+      return;
+    }
     var cell = event.target.closest("[data-board-pid]");
     if (!cell || !els.gameBoard.contains(cell)) return;
     var pid = cell.getAttribute("data-board-pid");
