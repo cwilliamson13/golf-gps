@@ -1,10 +1,10 @@
 // Bump CACHE_NAME when clients are stuck on an old build (iOS home screen).
-var CACHE_NAME = "golf-gps-v42";
+var CACHE_NAME = "golf-gps-v43";
 var ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=42",
-  "./app.js?v=42",
+  "./styles.css?v=43",
+  "./app.js?v=43",
   "./manifest.webmanifest",
   "./data/olde-salem-greens.json",
   "./icons/favicon.svg",

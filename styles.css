@@ -1090,21 +1090,65 @@ body {
   text-transform: none;
 }
 
-.game-table td.score-cell.is-hole-win {
-  position: relative;
+.game-table td.score-cell .score-win-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.05rem;
+  max-width: 100%;
+  padding: 0.18rem 0.42rem;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 999px;
+  line-height: 1.15;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 
-.game-table td.score-cell.is-hole-win::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 1.55rem;
-  height: 1.55rem;
-  transform: translate(-50%, -50%);
-  border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent);
-  border-radius: 50%;
-  pointer-events: none;
+.game-table td.score-cell.is-win-group {
+  padding-left: 0.12rem;
+  padding-right: 0.12rem;
+}
+
+.game-table td.score-cell.is-win-group-start {
+  text-align: right;
+  padding-right: 0;
+}
+
+.game-table td.score-cell.is-win-group-end {
+  text-align: left;
+  padding-left: 0;
+}
+
+.game-table td.score-cell.is-win-group .score-win-mark {
+  border-radius: 0;
+}
+
+.game-table td.score-cell.is-win-group-start .score-win-mark {
+  border-radius: 999px 0 0 999px;
+  border-right: none;
+  padding-right: 0.5rem;
+}
+
+.game-table td.score-cell.is-win-group-end .score-win-mark {
+  border-radius: 0 999px 999px 0;
+  border-left: none;
+  padding-left: 0.5rem;
+}
+
+.game-table td.score-cell.is-win-group:not(.is-win-group-start):not(.is-win-group-end) .score-win-mark {
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
+}
+
+.pts-col,
+.pts-cell {
+  min-width: 2.2rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
 }
 
 .team-match-row th,

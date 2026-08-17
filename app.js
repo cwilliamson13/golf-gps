@@ -345,68 +345,84 @@
     return ham ? ham.multiplier : 1;
   }
 
-  function hammerPointsForTeam(teamKey) {
-    if (!course) return null;
-    var pts = 0;
+  function holeTeamResult(hole) {
+    var a = teamHoleContestValue("A", hole);
+    var b = teamHoleContestValue("B", hole);
+    if (a == null || b == null) return { winner: null, stake: 1 };
+    var stake =
+      roundState.gameType === "hammer" ? hammerHoleStake(hole) : 1;
+    if (a === b) return { winner: "tie", stake: stake };
+    var aWins = lowerScoreWinsHole() ? a < b : a > b;
+    return { winner: aWins ? "A" : "B", stake: stake };
+  }
+
+  function holeTeamSwing(hole) {
+    var res = holeTeamResult(hole);
+    if (!res.winner) return { A: null, B: null, decided: false, tie: false };
+    if (res.winner === "tie")
+      return { A: 0, B: 0, decided: true, tie: true, stake: res.stake };
+    if (res.winner === "A")
+      return {
+        A: res.stake,
+        B: -res.stake,
+        decided: true,
+        tie: false,
+        stake: res.stake,
+        winner: "A",
+      };
+    return {
+      A: -res.stake,
+      B: res.stake,
+      decided: true,
+      tie: false,
+      stake: res.stake,
+      winner: "B",
+    };
+  }
+
+  function formatSignedPoints(n) {
+    if (n == null) return "—";
+    if (n === 0) return "0";
+    return (n > 0 ? "+" : "") + n;
+  }
+
+  function computeTeamMatchRuns() {
+    var runA = 0;
+    var runB = 0;
     var played = 0;
+    var thruHole = 0;
+    if (!course || !teamsVisible()) {
+      return { runA: 0, runB: 0, played: 0, thruHole: 0 };
+    }
     course.holes.forEach(function (h) {
-      var a = teamHoleScore("A", h);
-      var b = teamHoleScore("B", h);
-      if (a == null || b == null) return;
+      var swing = holeTeamSwing(h);
+      if (!swing.decided) return;
       played += 1;
-      if (a === b) return;
-      var winner = a < b ? "A" : "B";
-      if (winner === teamKey) pts += hammerHoleStake(h);
+      thruHole = h.number;
+      runA += swing.A;
+      runB += swing.B;
     });
-    if (!played) return null;
-    return pts;
-  }
-
-  function teamStrokeTotal(teamKey) {
-    if (!course) return null;
-    var tot = 0;
-    var n = 0;
-    course.holes.forEach(function (h) {
-      var hs = teamHoleScore(teamKey, h);
-      if (hs == null) return;
-      tot += hs;
-      n += 1;
-    });
-    if (!n) return null;
-    return tot;
-  }
-
-  function teamQuotaResult(teamKey) {
-    var players = roundState.players.filter(function (p) {
-      return (p.team === "B" ? "B" : "A") === teamKey;
-    });
-    var pts = 0;
-    var quota = 0;
-    var any = false;
-    players.forEach(function (p) {
-      var has = course.holes.some(function (h) {
-        return getPlayerScore(p.id, h.number) != null;
-      });
-      if (!has) return;
-      any = true;
-      pts += playerQuotaTotal(p);
-      quota += p.quota != null ? p.quota : 18;
-    });
-    if (!any) return null;
-    return { text: pts + "/" + quota, value: pts - quota };
+    return { runA: runA, runB: runB, played: played, thruHole: thruHole };
   }
 
   function teamMatchPoints(teamKey) {
     if (!teamsVisible()) return null;
-    if (isQuota()) return teamQuotaResult(teamKey);
-    if (roundState.gameType === "hammer") {
-      var hp = hammerPointsForTeam(teamKey);
-      if (hp == null) return null;
-      return { text: String(hp), value: hp };
-    }
-    var strokes = teamStrokeTotal(teamKey);
-    if (strokes == null) return null;
-    return { text: String(strokes), value: strokes };
+    var runs = computeTeamMatchRuns();
+    if (!runs.played) return null;
+    var val = teamKey === "B" ? runs.runB : runs.runA;
+    return { text: formatSignedPoints(val), value: val };
+  }
+
+  function matchStatusSummary() {
+    if (!course || !teamsVisible()) return null;
+    var aLabel = teamDisplayName("A");
+    var bLabel = teamDisplayName("B");
+    var runs = computeTeamMatchRuns();
+    if (!runs.played) return aLabel + " vs " + bLabel;
+    if (runs.runA === 0) return "AS Thru " + runs.thruHole;
+    if (runs.runA > 0)
+      return aLabel + " +" + runs.runA + " Thru " + runs.thruHole;
+    return bLabel + " +" + -runs.runA + " Thru " + runs.thruHole;
   }
 
   function teamHolePoints(teamKey, hole) {
@@ -468,24 +484,16 @@
     var secondVal = null;
     players.forEach(function (p) {
       if (p.id === bestId) leader = p;
-      else if (secondVal == null || (isQuota() ? runs[p.id] > secondVal : runs[p.id] < secondVal))
+      else if (
+        secondVal == null ||
+        (isQuota() ? runs[p.id] > secondVal : runs[p.id] < secondVal)
+      )
         secondVal = runs[p.id];
     });
     if (!leader) return "";
     if (secondVal == null) return playerInitials(leader);
     var margin = Math.abs(bestVal - secondVal);
     return playerInitials(leader) + (margin ? "+" + margin : "");
-  }
-
-  function holeTeamResult(hole) {
-    var a = teamHoleContestValue("A", hole);
-    var b = teamHoleContestValue("B", hole);
-    if (a == null || b == null) return { winner: null, stake: 1 };
-    var stake =
-      roundState.gameType === "hammer" ? hammerHoleStake(hole) : 1;
-    if (a === b) return { winner: "tie", stake: stake };
-    var aWins = lowerScoreWinsHole() ? a < b : a > b;
-    return { winner: aWins ? "A" : "B", stake: stake };
   }
 
   function holePlayerResult(hole) {
@@ -524,49 +532,6 @@
     if (!parts.length) return "?";
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  }
-
-  function computeTeamMatchRuns() {
-    var runA = 0;
-    var runB = 0;
-    var played = 0;
-    if (!course || !teamsVisible()) {
-      return { runA: 0, runB: 0, played: 0 };
-    }
-    course.holes.forEach(function (h) {
-      var res = holeTeamResult(h);
-      if (!res.winner) return;
-      played += 1;
-      if (roundState.gameType === "hammer") {
-        if (res.winner === "A") runA += res.stake;
-        else if (res.winner === "B") runB += res.stake;
-      } else if (isQuota()) {
-        runA += teamHolePoints("A", h) || 0;
-        runB += teamHolePoints("B", h) || 0;
-      } else {
-        runA += teamHoleScore("A", h) || 0;
-        runB += teamHoleScore("B", h) || 0;
-      }
-    });
-    return { runA: runA, runB: runB, played: played };
-  }
-
-  function matchStatusSummary() {
-    if (!course || !teamsVisible()) return null;
-    var aLabel = teamDisplayName("A");
-    var bLabel = teamDisplayName("B");
-    var runs = computeTeamMatchRuns();
-    if (!runs.played) return aLabel + " vs " + bLabel;
-    var lowerBetter =
-      roundState.gameType === "stroke" || roundState.gameType === "track";
-    var lead = formatLeadText(
-      runs.runA,
-      runs.runB,
-      lowerBetter,
-      aLabel,
-      bLabel
-    );
-    return lead + " · thru " + runs.played;
   }
 
   function teamScoreModeLabel() {
@@ -1813,85 +1778,172 @@
     var showTeams = teamsVisible();
     var isHammer = roundState.gameType === "hammer";
     var showContest = isCompetitive();
+    var teamMode = showTeams && showContest;
     var players = boardPlayers();
-    var aCount = players.filter(function (p) {
+    var teamA = players.filter(function (p) {
       return p.team !== "B";
-    }).length;
-    var bCount = players.length - aCount;
+    });
+    var teamB = players.filter(function (p) {
+      return p.team === "B";
+    });
     var aLabel = teamDisplayName("A");
     var bLabel = teamDisplayName("B");
     var compact = players.length <= 4;
-    var teamRuns = showTeams ? computeTeamMatchRuns() : null;
+    var teamRuns = teamMode ? computeTeamMatchRuns() : null;
+    var isBestBall = roundState.teamScoreMode === "bestball";
+    var runA = 0;
+    var runB = 0;
+
+    function scoreCellHtml(p, h, winClass) {
+      var sc = getPlayerScore(p.id, h.number);
+      var inner;
+      if (isQuota()) inner = sc == null ? "—" : String(sc);
+      else if (gameUsesHandicap() || isCompetitive())
+        inner = formatPlayerScoreHtml(p, sc, h);
+      else inner = sc != null ? String(sc) : "—";
+      var cls = ("score-cell " + (winClass || "")).trim();
+      if (
+        /\bis-hole-win\b/.test(cls) ||
+        /\bis-win-group\b/.test(cls)
+      ) {
+        inner = '<span class="score-win-mark">' + inner + "</span>";
+      }
+      return (
+        '<td class="' +
+        cls +
+        '" data-board-pid="' +
+        p.id +
+        '" data-board-hole="' +
+        h.number +
+        '">' +
+        inner +
+        "</td>"
+      );
+    }
+
+    function winClassesForTeam(teamKey, teamPlayers, h, swing) {
+      var classes = {};
+      teamPlayers.forEach(function (p) {
+        classes[p.id] = "";
+      });
+      if (!swing || !swing.winner || swing.winner !== teamKey) return classes;
+      var marked = [];
+      teamPlayers.forEach(function (p) {
+        var sc = getPlayerScore(p.id, h.number);
+        if (isQuota()) {
+          var pts = holePoints(p, sc, h);
+          if (pts == null) return;
+          if (isBestBall) {
+            if (pts === teamHolePoints(teamKey, h)) marked.push(p.id);
+          } else marked.push(p.id);
+        } else {
+          var used = playerUsedScore(p, sc, h);
+          if (used == null) return;
+          if (isBestBall) {
+            if (used === teamHoleScore(teamKey, h)) marked.push(p.id);
+          } else marked.push(p.id);
+        }
+      });
+      if (!marked.length) return classes;
+      if (isBestBall) {
+        marked.forEach(function (id) {
+          classes[id] = "is-hole-win";
+        });
+      } else {
+        marked.forEach(function (id, i) {
+          var cls = "is-win-group";
+          if (i === 0) cls += " is-win-group-start";
+          if (i === marked.length - 1) cls += " is-win-group-end";
+          classes[id] = cls;
+        });
+      }
+      return classes;
+    }
+
+    function renderTeamPlayersHeader(list) {
+      var out = "";
+      list.forEach(function (p) {
+        var headStar =
+          gameUsesHandicap() && strokesOnHoleFor(p, hole) > 0
+            ? ' <span class="stroke-mark">★</span>'
+            : "";
+        out += "<th>" + (p.name || p.id) + headStar + "</th>";
+      });
+      return out;
+    }
 
     var html =
       '<table class="game-table' +
       (showTeams ? " has-teams" : "") +
       (isHammer ? " has-hammer" : "") +
-      (showContest ? " has-contest" : "") +
+      (teamMode ? " has-team-pts" : "") +
       (compact ? " is-compact" : "") +
       '"><thead>';
-    if (showTeams && aCount && bCount) {
+
+    if (teamMode) {
       html += '<tr class="team-head-row"><th></th>';
       html +=
         '<th colspan="' +
-        aCount +
+        (teamA.length + 1) +
         '"><span class="team-head-name">' +
         aLabel +
         '</span><span class="team-head-tally">' +
-        (teamRuns && teamRuns.played ? String(teamRuns.runA) : "—") +
+        (teamRuns && teamRuns.played
+          ? formatSignedPoints(teamRuns.runA)
+          : "—") +
         "</span></th>";
       html +=
-        '<th colspan="' +
-        bCount +
-        '" class="team-sep"><span class="team-head-name">' +
+        '<th class="team-sep" colspan="' +
+        (teamB.length + 1) +
+        '"><span class="team-head-name">' +
         bLabel +
         '</span><span class="team-head-tally">' +
-        (teamRuns && teamRuns.played ? String(teamRuns.runB) : "—") +
-        "</span></th>";
+        (teamRuns && teamRuns.played
+          ? formatSignedPoints(teamRuns.runB)
+          : "—") +
+        "</span></th></tr>";
+      html += "<tr><th>#</th>";
+      html += renderTeamPlayersHeader(teamA);
+      html += '<th class="pts-col">Pts</th>';
+      teamB.forEach(function (p, i) {
+        var headStar =
+          gameUsesHandicap() && strokesOnHoleFor(p, hole) > 0
+            ? ' <span class="stroke-mark">★</span>'
+            : "";
+        html +=
+          '<th class="' +
+          (i === 0 ? "team-sep" : "") +
+          '">' +
+          (p.name || p.id) +
+          headStar +
+          "</th>";
+      });
+      html += '<th class="pts-col">Pts</th></tr>';
+    } else {
+      html += "<tr><th>#</th>";
+      players.forEach(function (p) {
+        var headStar =
+          gameUsesHandicap() && strokesOnHoleFor(p, hole) > 0
+            ? ' <span class="stroke-mark">★</span>'
+            : "";
+        html += "<th>" + (p.name || p.id) + headStar + "</th>";
+      });
       html += "</tr>";
     }
-    html += "<tr><th>#</th>";
-    players.forEach(function (p, index) {
-      var headStar =
-        gameUsesHandicap() && strokesOnHoleFor(p, hole) > 0
-          ? ' <span class="stroke-mark">★</span>'
-          : "";
-      html +=
-        '<th class="' +
-        teamColumnSep(p, index, players).trim() +
-        '">' +
-        (p.name || p.id) +
-        headStar +
-        "</th>";
-    });
-    html += "</tr></thead><tbody>";
+    html += "</thead><tbody>";
 
     course.holes.forEach(function (h, idx) {
       var hHam = hammerForHole(h.number);
+      var swing = teamMode ? holeTeamSwing(h) : null;
+      var holeTie = !!(swing && swing.tie);
       var winClass = "";
-      var teamRes = null;
-      var playerRes = null;
-      var winnerIds = {};
-      var holeTie = false;
+      if (swing && swing.winner === "A") winClass = " won-a";
+      else if (swing && swing.winner === "B") winClass = " won-b";
+      else if (holeTie) winClass = " won-tie";
 
-      if (showContest && showTeams) {
-        teamRes = holeTeamResult(h);
-        if (teamRes.winner === "tie") {
-          winClass = " won-tie";
-          holeTie = true;
-        } else if (teamRes.winner === "A") winClass = " won-a";
-        else if (teamRes.winner === "B") winClass = " won-b";
-      } else if (showContest) {
-        playerRes = holePlayerResult(h);
-        if (!playerRes.incomplete) {
-          if (playerRes.tie) {
-            winClass = " won-tie";
-            holeTie = true;
-          } else {
-            winClass = " won-player";
-            winnerIds[playerRes.winnerIds[0]] = true;
-          }
-        }
+      if (swing && swing.decided) {
+        runA += swing.A;
+        runB += swing.B;
       }
 
       var holeCell =
@@ -1914,9 +1966,8 @@
             : '<span class="hammer-tag is-off">·</span>') +
           "</button>";
       }
-      if (holeTie) {
+      if (holeTie)
         holeCell += '<span class="hole-tie-mark" title="Halved">=</span>';
-      }
 
       html +=
         '<tr class="' +
@@ -1926,65 +1977,83 @@
         holeCell +
         "</th>";
 
-      players.forEach(function (p, index) {
-        var sc = getPlayerScore(p.id, h.number);
-        var wonHole = false;
-        if (
-          showTeams &&
-          teamRes &&
-          teamRes.winner &&
-          teamRes.winner !== "tie"
-        ) {
-          var pTeam = p.team === "B" ? "B" : "A";
-          if (pTeam === teamRes.winner) {
-            if (isQuota()) {
-              var pts = holePoints(p, sc, h);
-              var bestPts = teamHolePoints(pTeam, h);
-              if (roundState.teamScoreMode === "bestball")
-                wonHole = pts != null && pts === bestPts;
-              else wonHole = pts != null;
-            } else {
-              var used = playerUsedScore(p, sc, h);
-              var best = teamHoleScore(pTeam, h);
-              if (roundState.teamScoreMode === "bestball")
-                wonHole = used != null && used === best;
-              else wonHole = used != null;
-            }
-          }
-        } else if (!showTeams && winnerIds[p.id]) {
-          wonHole = true;
+      if (teamMode) {
+        var winA = winClassesForTeam("A", teamA, h, swing);
+        var winB = winClassesForTeam("B", teamB, h, swing);
+        teamA.forEach(function (p) {
+          html += scoreCellHtml(p, h, winA[p.id]);
+        });
+        html +=
+          '<td class="pts-cell">' +
+          (swing && swing.decided ? formatSignedPoints(runA) : "·") +
+          "</td>";
+        teamB.forEach(function (p, i) {
+          html += scoreCellHtml(
+            p,
+            h,
+            (i === 0 ? "team-sep " : "") + (winB[p.id] || "")
+          );
+        });
+        html +=
+          '<td class="pts-cell">' +
+          (swing && swing.decided ? formatSignedPoints(runB) : "·") +
+          "</td>";
+      } else {
+        var winnerIds = {};
+        if (showContest) {
+          var playerRes = holePlayerResult(h);
+          if (!playerRes.incomplete && !playerRes.tie)
+            winnerIds[playerRes.winnerIds[0]] = true;
         }
-        var cell =
-          '<td class="score-cell' +
-          teamColumnSep(p, index, players) +
-          (wonHole ? " is-hole-win" : "") +
-          '" data-board-pid="' +
-          p.id +
-          '" data-board-hole="' +
-          h.number +
-          '">';
-        if (isQuota()) {
-          cell += sc == null ? "—" : String(sc);
-        } else if (gameUsesHandicap() || isCompetitive()) {
-          cell += formatPlayerScoreHtml(p, sc, h);
-        } else {
-          cell += sc != null ? String(sc) : "—";
-        }
-        html += cell + "</td>";
-      });
+        players.forEach(function (p) {
+          html += scoreCellHtml(
+            p,
+            h,
+            winnerIds[p.id] ? "is-hole-win" : ""
+          );
+        });
+      }
       html += "</tr>";
     });
 
     html += '<tr class="game-total-row"><th>Tot</th>';
-    players.forEach(function (p, index) {
-      var sep = teamColumnSep(p, index, players);
+    if (teamMode) {
+      teamA.forEach(function (p) {
+        html += playerTotalCell(p, "");
+      });
+      html +=
+        '<td class="pts-cell team-match-score">' +
+        (teamRuns && teamRuns.played
+          ? formatSignedPoints(teamRuns.runA)
+          : "—") +
+        "</td>";
+      teamB.forEach(function (p, i) {
+        html += playerTotalCell(p, i === 0 ? "team-sep" : "");
+      });
+      html +=
+        '<td class="pts-cell team-match-score">' +
+        (teamRuns && teamRuns.played
+          ? formatSignedPoints(teamRuns.runB)
+          : "—") +
+        "</td>";
+    } else {
+      players.forEach(function (p) {
+        html += playerTotalCell(p, "");
+      });
+    }
+    html += "</tr></tbody></table>";
+    els.gameBoard.classList.toggle("is-compact", compact);
+    els.gameBoard.innerHTML = html;
+
+    function playerTotalCell(p, extraClass) {
+      var cls = (extraClass || "").trim();
       if (isQuota()) {
         var pts = playerQuotaTotal(p);
         var q = p.quota != null ? p.quota : 18;
         var diff = pts - q;
-        html +=
+        return (
           '<td class="' +
-          sep.trim() +
+          cls +
           '">' +
           pts +
           "/" +
@@ -1992,44 +2061,17 @@
           ' <span class="pts">(' +
           (diff >= 0 ? "+" : "") +
           diff +
-          ")</span></td>";
-        return;
+          ")</span></td>"
+        );
       }
       var r = playerStrokeTotal(p);
-      if (!r.n) html += '<td class="' + sep.trim() + '">—</td>';
-      else if (gameUsesHandicap() && playerHcp(p))
-        html +=
-          '<td class="' + sep.trim() + '">' + r.tot + " / " + r.net + "</td>";
-      else html += '<td class="' + sep.trim() + '">' + r.tot + "</td>";
-    });
-    html += "</tr>";
-
-    if (showTeams && aCount && bCount && showContest) {
-      var aScore = teamMatchPoints("A");
-      var bScore = teamMatchPoints("B");
-      html +=
-        '<tr class="team-match-row"><th>' +
-        (isHammer || isQuota() ? "Pts" : "Team") +
-        "</th>";
-      html +=
-        '<td colspan="' +
-        aCount +
-        '" class="team-match-cell">' +
-        '<span class="team-match-score">' +
-        (aScore ? aScore.text : "—") +
-        "</span></td>";
-      html +=
-        '<td colspan="' +
-        bCount +
-        '" class="team-match-cell team-sep">' +
-        '<span class="team-match-score">' +
-        (bScore ? bScore.text : "—") +
-        "</span></td>";
-      html += "</tr>";
+      if (!r.n) return '<td class="' + cls + '">—</td>';
+      if (gameUsesHandicap() && playerHcp(p))
+        return (
+          '<td class="' + cls + '">' + r.tot + " / " + r.net + "</td>"
+        );
+      return '<td class="' + cls + '">' + r.tot + "</td>";
     }
-    html += "</tbody></table>";
-    els.gameBoard.classList.toggle("is-compact", compact);
-    els.gameBoard.innerHTML = html;
   }
 
   function openBoardScoreEdit(playerId, holeNumber) {
