@@ -819,6 +819,32 @@ body {
   font-size: 0.75rem;
 }
 
+.stroke-hint {
+  margin: 0.2rem 0 0;
+  font-size: 0.82rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.stroke-hint[hidden] {
+  display: none;
+}
+
+.stroke-mark {
+  color: var(--accent);
+  font-size: 0.75em;
+  margin-left: 0.15rem;
+}
+
+.team-vs-mode {
+  width: 100%;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
 .settings-check {
   display: flex;
   align-items: center;
@@ -1120,7 +1146,9 @@ body {
 
 .teams-options[hidden],
 #playerEditTeamBlock[hidden],
-#playerEditQuotaBlock[hidden] {
+#playerEditQuotaBlock[hidden],
+#playerEditHcpBlock[hidden],
+#teamScoreModeBlock[hidden] {
   display: none;
 }
 

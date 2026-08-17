@@ -75,6 +75,7 @@
   var multiDraft = {};
   var draftTeamsEnabled = false;
   var draftTeamRandom = "manual";
+  var draftTeamScoreMode = "bestball";
 
   var roundState = {
     gameType: "none",
@@ -86,6 +87,7 @@
     teamRandom: "manual",
     teamsDrawn: false,
     teamNames: { A: "Team A", B: "Team B" },
+    teamScoreMode: "bestball",
     updatedAt: 0,
   };
 
@@ -99,6 +101,7 @@
     holeLabel: document.getElementById("holeLabel"),
     holeScore: document.getElementById("holeScore"),
     holeMeta: document.getElementById("holeMeta"),
+    strokeHint: document.getElementById("strokeHint"),
     teeOpen: document.getElementById("teeOpen"),
     hcpOpen: document.getElementById("hcpOpen"),
     settingsOpen: document.getElementById("settingsOpen"),
@@ -137,12 +140,14 @@
     teamsOptions: document.getElementById("teamsOptions"),
     teamNameA: document.getElementById("teamNameA"),
     teamNameB: document.getElementById("teamNameB"),
+    teamScoreModeBlock: document.getElementById("teamScoreModeBlock"),
     shuffleTeamsBtn: document.getElementById("shuffleTeamsBtn"),
     settingsClose: document.getElementById("settingsClose"),
     settingsSave: document.getElementById("settingsSave"),
     playerEditPad: document.getElementById("playerEditPad"),
     playerEditTitle: document.getElementById("playerEditTitle"),
     playerEditName: document.getElementById("playerEditName"),
+    playerEditHcpBlock: document.getElementById("playerEditHcpBlock"),
     playerEditHcp: document.getElementById("playerEditHcp"),
     playerEditTeamBlock: document.getElementById("playerEditTeamBlock"),
     playerEditTeamA: document.getElementById("playerEditTeamA"),
@@ -205,6 +210,20 @@
 
   function isQuota() {
     return roundState.gameType === "quota";
+  }
+
+  function gameUsesHandicap(type) {
+    var t = type != null ? type : roundState.gameType;
+    return t === "none" || t === "stroke" || t === "hammer";
+  }
+
+  function draftUsesHandicap() {
+    return gameUsesHandicap(els.gameTypeSelect.value);
+  }
+
+  function teamScoreModeSupports(type) {
+    var t = type != null ? type : roundState.gameType;
+    return t === "stroke" || t === "hammer";
   }
 
   function uid() {
@@ -289,6 +308,29 @@
     return { tot: tot, net: net, n: n };
   }
 
+  function playerUsedScore(player, gross, hole) {
+    if (gross == null) return null;
+    if (gameUsesHandicap() && playerHcp(player))
+      return netScoreFor(player, gross, hole);
+    return gross;
+  }
+
+  function teamHoleScore(teamKey, hole) {
+    var vals = [];
+    roundState.players.forEach(function (p) {
+      if ((p.team === "B" ? "B" : "A") !== teamKey) return;
+      var sc = getPlayerScore(p.id, hole.number);
+      var used = playerUsedScore(p, sc, hole);
+      if (used != null) vals.push(used);
+    });
+    if (!vals.length) return null;
+    if (roundState.teamScoreMode === "bestball")
+      return Math.min.apply(null, vals);
+    return vals.reduce(function (a, b) {
+      return a + b;
+    }, 0);
+  }
+
   function teamCombinedScore(teamKey) {
     var players = roundState.players.filter(function (p) {
       return (p.team === "B" ? "B" : "A") === teamKey;
@@ -311,14 +353,29 @@
     }
     var tot = 0;
     var n = 0;
-    players.forEach(function (p) {
-      var r = playerStrokeTotal(p);
-      if (!r.n) return;
-      tot += isCompetitive() && playerHcp(p) ? r.net : r.tot;
-      n += r.n;
-    });
+    if (teamsVisible() && teamScoreModeSupports()) {
+      course.holes.forEach(function (h) {
+        var hs = teamHoleScore(teamKey, h);
+        if (hs == null) return;
+        tot += hs;
+        n += 1;
+      });
+    } else {
+      players.forEach(function (p) {
+        var r = playerStrokeTotal(p);
+        if (!r.n) return;
+        tot += gameUsesHandicap() && playerHcp(p) ? r.net : r.tot;
+        n += r.n;
+      });
+    }
     if (!n) return null;
     return { text: String(tot), value: tot };
+  }
+
+  function teamScoreModeLabel() {
+    return roundState.teamScoreMode === "cumulative"
+      ? "Cumulative"
+      : "Best ball";
   }
 
   function formatPlayerHcpLabel(player) {
@@ -328,8 +385,7 @@
 
   function holePoints(player, gross, hole) {
     if (gross == null) return null;
-    var used = playerHcp(player) ? netScoreFor(player, gross, hole) : gross;
-    var diff = used - hole.par;
+    var diff = gross - hole.par;
     if (diff <= -2) return 4;
     if (diff === -1) return 3;
     if (diff === 0) return 2;
@@ -404,6 +460,8 @@
         A: (raw.teamNames && raw.teamNames.A) || "Team A",
         B: (raw.teamNames && raw.teamNames.B) || "Team B",
       };
+      roundState.teamScoreMode =
+        raw.teamScoreMode === "cumulative" ? "cumulative" : "bestball";
       roundState.updatedAt = raw.updatedAt || 0;
       if (typeof raw.holeIndex === "number") holeIndex = raw.holeIndex;
     } catch (e) {}
@@ -422,6 +480,7 @@
         teamRandom: roundState.teamRandom,
         teamsDrawn: roundState.teamsDrawn,
         teamNames: roundState.teamNames || { A: "Team A", B: "Team B" },
+        teamScoreMode: roundState.teamScoreMode || "bestball",
         holeIndex: holeIndex,
         updatedAt: Date.now(),
         tee: selectedTee,
@@ -733,15 +792,21 @@
   }
 
   function formatPlayerScoreHtml(player, gross, hole) {
-    if (gross == null) return "—";
-    var s = strokesOnHoleFor(player, hole);
+    if (gross == null) {
+      return gameUsesHandicap() && strokesOnHoleFor(player, hole) > 0
+        ? '<span class="stroke-mark">★</span>'
+        : "—";
+    }
+    var s = gameUsesHandicap() ? strokesOnHoleFor(player, hole) : 0;
+    var star = s > 0 ? '<span class="stroke-mark">★</span>' : "";
     var grossHtml =
       '<span class="score-part ' +
       scoreClass(gross, hole.par) +
       '">' +
       gross +
       "</span>";
-    if (!playerHcp(player) || s === 0) return grossHtml;
+    if (!gameUsesHandicap() || !playerHcp(player) || s === 0)
+      return grossHtml + star;
     var net = netScoreFor(player, gross, hole);
     return (
       grossHtml +
@@ -749,8 +814,41 @@
       scoreClass(net, hole.par) +
       '">' +
       net +
-      "</span>"
+      "</span>" +
+      star
     );
+  }
+
+  function updateStrokeHint() {
+    if (!els.strokeHint || !course) return;
+    var hole = currentHole();
+    if (!gameUsesHandicap()) {
+      els.strokeHint.hidden = true;
+      return;
+    }
+    if (isMultiMode()) {
+      var names = [];
+      roundState.players.forEach(function (p) {
+        var s = strokesOnHoleFor(p, hole);
+        if (s > 0) names.push((p.name || p.id) + (s > 1 ? " ×" + s : ""));
+      });
+      els.strokeHint.hidden = false;
+      els.strokeHint.textContent = names.length
+        ? "Strokes: " + names.join(", ")
+        : "No strokes this hole";
+      return;
+    }
+    if (hasHandicap() && strokesOnHole(hole) > 0) {
+      els.strokeHint.hidden = false;
+      els.strokeHint.textContent =
+        "You get " +
+        strokesOnHole(hole) +
+        " stroke" +
+        (strokesOnHole(hole) > 1 ? "s" : "") +
+        " here";
+    } else {
+      els.strokeHint.hidden = true;
+    }
   }
 
   function bumpActivity() {
@@ -883,9 +981,12 @@
     els.gameTeamsLabel.hidden = false;
     if (aScore && bScore) {
       els.gameTeamsLabel.innerHTML =
+        (teamScoreModeSupports()
+          ? '<span class="team-vs-mode">' + teamScoreModeLabel() + "</span>"
+          : "") +
         '<span class="team-vs-side">' +
         aLabel +
-        ' <strong>' +
+        " <strong>" +
         aScore.text +
         "</strong></span>" +
         '<span class="team-vs-mid">vs</span>' +
@@ -895,7 +996,11 @@
         bLabel +
         "</span>";
     } else {
-      els.gameTeamsLabel.textContent = aLabel + " vs " + bLabel;
+      els.gameTeamsLabel.textContent =
+        (teamScoreModeSupports() ? teamScoreModeLabel() + " · " : "") +
+        aLabel +
+        " vs " +
+        bLabel;
     }
   }
 
@@ -961,9 +1066,11 @@
   function renderPlayersEditor() {
     els.playersEditor.innerHTML = "";
     var showTeam = draftTeamsEnabled;
-    var showHcp = draftPlayers.some(function (p) {
-      return p.handicap18 != null;
-    });
+    var showHcp =
+      draftUsesHandicap() &&
+      draftPlayers.some(function (p) {
+        return p.handicap18 != null;
+      });
     var showQuota = els.gameTypeSelect.value === "quota";
     draftPlayers.forEach(function (p, index) {
       var btn = document.createElement("button");
@@ -1014,6 +1121,7 @@
       );
     });
     editTeam = p.team === "B" ? "B" : "A";
+    els.playerEditHcpBlock.hidden = !draftUsesHandicap();
     els.playerEditTeamBlock.hidden = !draftTeamsEnabled;
     els.playerEditTeamA.textContent = draftTeamDisplayName("A");
     els.playerEditTeamB.textContent = draftTeamDisplayName("B");
@@ -1059,6 +1167,15 @@
         btn.getAttribute("data-team-random") === draftTeamRandom
       );
     });
+    document.querySelectorAll("[data-team-score]").forEach(function (btn) {
+      btn.classList.toggle(
+        "is-active",
+        btn.getAttribute("data-team-score") === draftTeamScoreMode
+      );
+    });
+    var showTeamScore =
+      draftTeamsEnabled && teamScoreModeSupports(els.gameTypeSelect.value);
+    els.teamScoreModeBlock.hidden = !showTeamScore;
     els.shuffleTeamsBtn.hidden =
       !draftTeamsEnabled || draftTeamRandom === "end";
     renderPlayersEditor();
@@ -1089,6 +1206,7 @@
   function updateSettingsGameVisibility() {
     var t = els.gameTypeSelect.value;
     els.gameSettingsBlock.hidden = t === "none";
+    updateTeamsSettingsUi();
     updateSettingsSaveLabel();
   }
 
@@ -1122,6 +1240,8 @@
     );
     draftTeamsEnabled = !!roundState.teamsEnabled;
     draftTeamRandom = roundState.teamRandom || "manual";
+    draftTeamScoreMode =
+      roundState.teamScoreMode === "cumulative" ? "cumulative" : "bestball";
     els.teamNameA.value = (roundState.teamNames && roundState.teamNames.A) || "Team A";
     els.teamNameB.value = (roundState.teamNames && roundState.teamNames.B) || "Team B";
     updateTeamsSettingsUi();
@@ -1210,6 +1330,8 @@
     var prevTeamRandom = roundState.teamRandom || "manual";
     roundState.teamsEnabled = !!draftTeamsEnabled;
     roundState.teamRandom = draftTeamRandom || "manual";
+    roundState.teamScoreMode =
+      draftTeamScoreMode === "cumulative" ? "cumulative" : "bestball";
     roundState.teamNames = {
       A: els.teamNameA.value.trim() || "Team A",
       B: els.teamNameB.value.trim() || "Team B",
@@ -1427,11 +1549,16 @@
 
     var html = '<table class="game-table' + (showTeams ? " has-teams" : "") + '"><thead><tr><th>Hole</th>';
     players.forEach(function (p, index) {
+      var headStar =
+        gameUsesHandicap() && strokesOnHoleFor(p, hole) > 0
+          ? ' <span class="stroke-mark">★</span>'
+          : "";
       html +=
         '<th class="' +
         teamColumnSep(p, index, players).trim() +
         '">' +
         (p.name || p.id) +
+        headStar +
         "</th>";
     });
     html += "</tr></thead><tbody>";
@@ -1461,10 +1588,13 @@
               ? "—"
               : sc +
                 (pts != null ? " <span class='pts'>(" + pts + ")</span>" : "");
-        } else if (isCompetitive()) {
+        } else if (gameUsesHandicap() || isCompetitive()) {
           cell += formatPlayerScoreHtml(p, sc, h);
         } else {
-          cell += sc != null ? sc : "—";
+          cell +=
+            sc != null
+              ? String(sc)
+              : "—";
         }
         html += cell + "</td>";
       });
@@ -1492,16 +1622,19 @@
       }
       var r = playerStrokeTotal(p);
       if (!r.n) html += '<td class="' + sep.trim() + '">—</td>';
-      else if (isCompetitive() && playerHcp(p))
+      else if (gameUsesHandicap() && playerHcp(p))
         html +=
           '<td class="' + sep.trim() + '">' + r.tot + " / " + r.net + "</td>";
       else html += '<td class="' + sep.trim() + '">' + r.tot + "</td>";
     });
     html += "</tr>";
-    if (showTeams && aCount && bCount) {
+    if (showTeams && aCount && bCount && !isQuota()) {
       var aScore = teamCombinedScore("A");
       var bScore = teamCombinedScore("B");
-      html += '<tr class="team-match-row"><th>Team</th>';
+      html +=
+        '<tr class="team-match-row"><th>' +
+        (teamScoreModeSupports() ? teamScoreModeLabel() : "Team") +
+        "</th>";
       html +=
         '<td colspan="' +
         aCount +
@@ -1521,6 +1654,31 @@
         "</span>" +
         '<span class="team-match-score">' +
         (bScore ? bScore.text : "—") +
+        "</span></td>";
+      html += "</tr>";
+    } else if (showTeams && aCount && bCount && isQuota()) {
+      var aQ = teamCombinedScore("A");
+      var bQ = teamCombinedScore("B");
+      html += '<tr class="team-match-row"><th>Team</th>';
+      html +=
+        '<td colspan="' +
+        aCount +
+        '" class="team-match-cell">' +
+        '<span class="team-match-names">' +
+        teamRosterLabel("A", roundState.players) +
+        "</span>" +
+        '<span class="team-match-score">' +
+        (aQ ? aQ.text : "—") +
+        "</span></td>";
+      html +=
+        '<td colspan="' +
+        bCount +
+        '" class="team-match-cell team-sep">' +
+        '<span class="team-match-names">' +
+        teamRosterLabel("B", roundState.players) +
+        "</span>" +
+        '<span class="team-match-score">' +
+        (bQ ? bQ.text : "—") +
         "</span></td>";
       html += "</tr>";
     }
@@ -1670,10 +1828,15 @@
 
     els.courseName.textContent = course.name;
     els.holeLabel.textContent =
-      "Hole " + hole.number + holeStar(hole) + " · Par " + hole.par;
+      "Hole " +
+      hole.number +
+      (!isMultiMode() ? holeStar(hole) : "") +
+      " · Par " +
+      hole.par;
     els.holeScore.innerHTML = formatScoreHtml(score, hole);
     els.holeScore.className = "hole-score";
     els.holeMeta.textContent = "Hcp " + hole.handicap + " · " + yards + " yd";
+    updateStrokeHint();
     updateTeeButton();
     updateHcpButton();
     updateDistances();
@@ -2216,6 +2379,13 @@
   document.querySelectorAll("[data-team-random]").forEach(function (btn) {
     btn.addEventListener("click", function () {
       draftTeamRandom = btn.getAttribute("data-team-random");
+      updateTeamsSettingsUi();
+      haptic(6);
+    });
+  });
+  document.querySelectorAll("[data-team-score]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      draftTeamScoreMode = btn.getAttribute("data-team-score");
       updateTeamsSettingsUi();
       haptic(6);
     });
