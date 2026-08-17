@@ -17,7 +17,7 @@
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
     <link rel="icon" href="icons/favicon.svg" type="image/svg+xml" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css?v=37" />
+    <link rel="stylesheet" href="styles.css?v=39" />
     <title>Golf GPS</title>
   </head>
   <body>
@@ -35,6 +35,7 @@
                 </div>
                 <p class="hole-meta" id="holeMeta">Hcp 4 · 343 yd</p>
                 <p class="stroke-hint" id="strokeHint" hidden></p>
+                <p class="stroke-hint" id="teamStrokeHint" hidden></p>
                 <p class="hammer-hint" id="hammerHint" hidden></p>
                 <p class="gps-status" id="status">Waiting for GPS…</p>
                 <button type="button" class="tee-open" id="teeOpen">Blue tees</button>
@@ -74,7 +75,7 @@
                     Hammer to 2x
                   </button>
                   <button type="button" class="nav-btn play-action-btn" id="gameHammerClearBtn">
-                    Clear hammer
+                    Clear Hammer
                   </button>
                 </div>
                 <button type="button" class="nav-btn play-action-btn" id="drawTeamsBtn" hidden>
@@ -102,7 +103,7 @@
               <button type="button" class="summary-link" id="openSummary" hidden>
                 Summary
               </button>
-              <button type="button" class="clear-round" id="clearRound">Clear round</button>
+              <button type="button" class="clear-round" id="clearRound">Clear Round</button>
             </div>
           </section>
         </main>
@@ -348,6 +349,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=37"></script>
+    <script src="app.js?v=39"></script>
   </body>
 </html>

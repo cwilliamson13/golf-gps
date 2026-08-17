@@ -102,6 +102,7 @@
     holeScore: document.getElementById("holeScore"),
     holeMeta: document.getElementById("holeMeta"),
     strokeHint: document.getElementById("strokeHint"),
+    teamStrokeHint: document.getElementById("teamStrokeHint"),
     hammerHint: document.getElementById("hammerHint"),
     teeOpen: document.getElementById("teeOpen"),
     hcpOpen: document.getElementById("hcpOpen"),
@@ -836,44 +837,35 @@
   function updateStrokeHint() {
     if (!els.strokeHint || !course) return;
     var hole = currentHole();
+    if (els.teamStrokeHint) els.teamStrokeHint.hidden = true;
     if (!gameUsesHandicap()) {
       els.strokeHint.hidden = true;
       return;
     }
     if (isMultiMode()) {
-      var entries = [];
+      var playerBits = [];
+      var teamTot = { A: 0, B: 0 };
       roundState.players.forEach(function (p) {
         var s = strokesOnHoleFor(p, hole);
-        if (s > 0)
-          entries.push({
-            team: p.team === "B" ? "B" : "A",
-            label: (p.name || p.id) + strokeStarMarks(s),
-          });
+        if (s <= 0) return;
+        playerBits.push((p.name || p.id) + strokeStarMarks(s));
+        var t = p.team === "B" ? "B" : "A";
+        teamTot[t] += s;
       });
       els.strokeHint.hidden = false;
-      if (!entries.length) {
-        els.strokeHint.textContent = teamsVisible()
-          ? "Team Strokes: none"
-          : "Strokes: none";
-        return;
-      }
-      if (teamsVisible()) {
-        var byTeam = { A: [], B: [] };
-        entries.forEach(function (e) {
-          byTeam[e.team].push(e.label);
-        });
-        var parts = [];
-        if (byTeam.A.length) parts.push(byTeam.A.join("/"));
-        if (byTeam.B.length) parts.push(byTeam.B.join("/"));
-        els.strokeHint.textContent = "Team Strokes: " + parts.join(" · ");
-      } else {
-        els.strokeHint.textContent =
-          "Strokes: " +
-          entries
-            .map(function (e) {
-              return e.label;
-            })
-            .join(" · ");
+      els.strokeHint.textContent = playerBits.length
+        ? "Strokes: " + playerBits.join(", ")
+        : "Strokes: none";
+      if (teamsVisible() && els.teamStrokeHint) {
+        var teamBits = [];
+        if (teamTot.A > 0)
+          teamBits.push(teamDisplayName("A") + strokeStarMarks(teamTot.A));
+        if (teamTot.B > 0)
+          teamBits.push(teamDisplayName("B") + strokeStarMarks(teamTot.B));
+        els.teamStrokeHint.hidden = false;
+        els.teamStrokeHint.textContent = teamBits.length
+          ? "Team Strokes: " + teamBits.join(", ")
+          : "Team Strokes: none";
       }
       return;
     }
