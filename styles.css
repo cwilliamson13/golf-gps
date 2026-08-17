@@ -748,3 +748,290 @@ body {
   color: var(--bg-deep);
   font-weight: 700;
 }
+
+.app-pager {
+  width: 100%;
+  overflow: hidden;
+}
+
+.pager-track {
+  display: flex;
+  width: 100%;
+  transition: transform 0.28s ease;
+  will-change: transform;
+}
+
+.app-pager.has-game .pager-track {
+  width: 200%;
+}
+
+.pager-page {
+  width: 100%;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.app-pager.has-game .pager-page {
+  width: 50%;
+}
+
+.settings-open {
+  display: block;
+  margin: 0 0 0.45rem auto;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--muted) 28%, transparent);
+  border-radius: 0.35rem;
+  background: transparent;
+  font: inherit;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.settings-open:active {
+  background: color-mix(in srgb, var(--bg-light) 35%, transparent);
+}
+
+.pager-hint {
+  margin: 0.45rem 0 0;
+  font-size: 0.75rem;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.hcp-open[hidden],
+.pager-hint[hidden] {
+  display: none;
+}
+
+.game-page {
+  min-height: 100dvh;
+  padding-top: max(1.1rem, env(safe-area-inset-top));
+  text-align: left;
+}
+
+.game-page[hidden] {
+  display: none;
+}
+
+.app-pager.has-game .game-page[hidden] {
+  display: block;
+}
+
+.game-inner {
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: 0 1rem max(1.25rem, env(safe-area-inset-bottom));
+}
+
+.game-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.game-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.game-hole {
+  margin: 0.85rem 0 0.35rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.game-hammer-status {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: var(--accent);
+}
+
+.game-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+  margin-bottom: 0.85rem;
+}
+
+.game-actions .nav-btn {
+  min-height: 3.25rem;
+}
+
+.game-board {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.game-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+}
+
+.game-table th,
+.game-table td {
+  padding: 0.45rem 0.35rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--muted) 25%, transparent);
+  text-align: center;
+}
+
+.game-table th:first-child,
+.game-table td:first-child {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  background: var(--bg-mid);
+}
+
+.game-table tr.is-active {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.game-total-row th,
+.game-total-row td {
+  font-weight: 700;
+  border-bottom: none;
+  padding-top: 0.7rem;
+}
+
+.hammer-tag {
+  color: var(--accent);
+  font-size: 0.75rem;
+}
+
+.game-room {
+  margin: 0.85rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.settings-sheet {
+  text-align: left;
+  max-height: min(90dvh, 40rem);
+  overflow-y: auto;
+}
+
+.settings-label {
+  display: block;
+  margin: 0.85rem 0 0.35rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.settings-select {
+  width: 100%;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--bg-deep) 55%, transparent);
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+}
+
+.players-editor {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.65rem;
+}
+
+.player-edit-row {
+  display: grid;
+  grid-template-columns: 1fr auto 4.5rem;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.player-edit-row .hcp-input,
+.player-edit-row .settings-select {
+  margin: 0;
+}
+
+.player-hcp-sign {
+  width: 3.5rem;
+  padding: 0.65rem 0.25rem;
+}
+
+.room-code-display {
+  margin: 0.35rem 0 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  text-align: center;
+}
+
+.room-join-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.45rem;
+  margin-top: 0.55rem;
+  align-items: center;
+}
+
+.room-join-input {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-align: center;
+}
+
+.settings-footer {
+  margin-top: 1rem;
+}
+
+.multi-score-sheet {
+  text-align: left;
+}
+
+.multi-score-list {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0.85rem 0 1rem;
+}
+
+.multi-score-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.multi-score-name {
+  font-weight: 600;
+  min-width: 4.5rem;
+}
+
+.multi-score-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.multi-score-val {
+  min-width: 2.5rem;
+  padding: 0.35rem;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.multi-score-controls .score-quick-btn {
+  min-width: 2.4rem;
+  height: 2.4rem;
+  padding: 0;
+}

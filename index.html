@@ -17,76 +17,104 @@
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
     <link rel="icon" href="icons/favicon.svg" type="image/svg+xml" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css?v=13" />
+    <link rel="stylesheet" href="styles.css?v=20" />
     <title>Golf GPS</title>
   </head>
   <body>
-    <main class="shell" id="playView">
-      <div class="play-area">
-        <header class="top">
-          <div class="top-left">
-            <p class="brand" id="courseName">Golf GPS</p>
-            <p class="hole-label" id="holeLabel">Hole 1</p>
-            <div class="hole-score-wrap">
-              <p class="hole-score-label">This Hole</p>
-              <p class="hole-score" id="holeScore">—</p>
-            </div>
-            <p class="hole-meta" id="holeMeta">Hcp 4 · 343 yd</p>
-            <p class="gps-status" id="status">Waiting for GPS…</p>
-            <button type="button" class="tee-open" id="teeOpen">Blue tees</button>
-            <button type="button" class="hcp-open" id="hcpOpen">HCP —</button>
-          </div>
-          <div class="top-right">
-            <p class="round-total" id="roundTotal">—</p>
-            <p class="to-par" id="toPar">E</p>
-          </div>
-        </header>
+    <div class="app-pager" id="appPager">
+      <div class="pager-track" id="pagerTrack">
+        <main class="shell pager-page" id="playView">
+          <div class="play-area">
+            <header class="top">
+              <div class="top-left">
+                <p class="brand" id="courseName">Golf GPS</p>
+                <p class="hole-label" id="holeLabel">Hole 1</p>
+                <div class="hole-score-wrap">
+                  <p class="hole-score-label">This Hole</p>
+                  <p class="hole-score" id="holeScore">—</p>
+                </div>
+                <p class="hole-meta" id="holeMeta">Hcp 4 · 343 yd</p>
+                <p class="gps-status" id="status">Waiting for GPS…</p>
+                <button type="button" class="tee-open" id="teeOpen">Blue tees</button>
+                <button type="button" class="hcp-open" id="hcpOpen">HCP —</button>
+              </div>
+              <div class="top-right">
+                <button type="button" class="settings-open" id="settingsOpen" aria-label="Round settings">
+                  Settings
+                </button>
+                <p class="round-total" id="roundTotal">—</p>
+                <p class="to-par" id="toPar">E</p>
+                <p class="pager-hint" id="pagerHint" hidden>Swipe for game →</p>
+              </div>
+            </header>
 
-        <section class="distance-block">
-          <p class="distance" id="distanceMid">—</p>
-          <p class="label">yards to middle</p>
-          <div class="pin-row">
-            <div>
-              <span class="pin-val" id="distanceFront">—</span>
-              <span class="pin-name">Front</span>
+            <section class="distance-block">
+              <p class="distance" id="distanceMid">—</p>
+              <p class="label">yards to middle</p>
+              <div class="pin-row">
+                <div>
+                  <span class="pin-val" id="distanceFront">—</span>
+                  <span class="pin-name">Front</span>
+                </div>
+                <div>
+                  <span class="pin-val" id="distanceBack">—</span>
+                  <span class="pin-name">Back</span>
+                </div>
+              </div>
+            </section>
+
+            <div class="controls">
+              <div class="score-quick" role="group" aria-label="Quick score">
+                <button type="button" class="score-quick-btn" data-score-action="dec">−</button>
+                <button type="button" class="score-quick-btn" data-score-action="birdie">−1</button>
+                <button type="button" class="score-quick-btn" data-score-action="par">E</button>
+                <button type="button" class="score-quick-btn" data-score-action="bogey">+1</button>
+                <button type="button" class="score-quick-btn" data-score-action="double">+2</button>
+                <button type="button" class="score-quick-btn" data-score-action="inc">+</button>
+              </div>
+              <div class="hole-nav">
+                <button type="button" class="nav-btn" id="prevHole">Prev</button>
+                <button type="button" class="nav-btn" id="nextHole">Next</button>
+              </div>
             </div>
-            <div>
-              <span class="pin-val" id="distanceBack">—</span>
-              <span class="pin-name">Back</span>
+          </div>
+
+          <section class="scorecard" id="scorecardSection" aria-label="Scorecard">
+            <div class="scorecard-bar">
+              <button type="button" class="scorecard-toggle" id="scorecardToggle">
+                <span>Scorecard</span>
+                <span id="scorecardChevron">▾</span>
+              </button>
+              <button type="button" class="summary-link" id="openSummary" hidden>
+                Summary
+              </button>
+              <button type="button" class="clear-round" id="clearRound">Clear round</button>
             </div>
+            <div class="scorecard-grid" id="scorecard"></div>
+          </section>
+        </main>
+
+        <section class="shell game-page pager-page" id="gameView" hidden>
+          <div class="game-inner">
+            <div class="game-top">
+              <button type="button" class="summary-back" id="gameBackPlay">← Play</button>
+              <p class="game-title" id="gameTitle">Game</p>
+              <button type="button" class="settings-open" id="gameSettingsOpen">Settings</button>
+            </div>
+            <p class="game-hole" id="gameHoleLabel">Hole 1</p>
+            <p class="game-hammer-status" id="gameHammerStatus" hidden></p>
+            <div class="game-actions">
+              <button type="button" class="nav-btn" id="gameEnterScores">Enter scores</button>
+              <button type="button" class="nav-btn game-hammer-btn" id="gameHammerBtn" hidden>
+                Hammer
+              </button>
+            </div>
+            <div class="game-board" id="gameBoard"></div>
+            <p class="game-room" id="gameRoomLabel" hidden></p>
           </div>
         </section>
-
-        <div class="controls">
-          <div class="score-quick" role="group" aria-label="Quick score">
-            <button type="button" class="score-quick-btn" data-score-action="dec">−</button>
-            <button type="button" class="score-quick-btn" data-score-action="birdie">−1</button>
-            <button type="button" class="score-quick-btn" data-score-action="par">E</button>
-            <button type="button" class="score-quick-btn" data-score-action="bogey">+1</button>
-            <button type="button" class="score-quick-btn" data-score-action="double">+2</button>
-            <button type="button" class="score-quick-btn" data-score-action="inc">+</button>
-          </div>
-          <div class="hole-nav">
-            <button type="button" class="nav-btn" id="prevHole">Prev</button>
-            <button type="button" class="nav-btn" id="nextHole">Next</button>
-          </div>
-        </div>
       </div>
-
-      <section class="scorecard" id="scorecardSection" aria-label="Scorecard">
-        <div class="scorecard-bar">
-          <button type="button" class="scorecard-toggle" id="scorecardToggle">
-            <span>Scorecard</span>
-            <span id="scorecardChevron">▾</span>
-          </button>
-          <button type="button" class="summary-link" id="openSummary" hidden>
-            Summary
-          </button>
-          <button type="button" class="clear-round" id="clearRound">Clear round</button>
-        </div>
-        <div class="scorecard-grid" id="scorecard"></div>
-      </section>
-    </main>
+    </div>
 
     <section class="summary" id="summaryView" hidden>
       <div class="summary-inner">
@@ -107,6 +135,58 @@
         </div>
       </div>
     </section>
+
+    <div class="pad" id="settingsPad" hidden>
+      <div class="pad-sheet settings-sheet">
+        <p class="pad-title">Round settings</p>
+        <label class="settings-label" for="gameTypeSelect">Game</label>
+        <select id="gameTypeSelect" class="settings-select">
+          <option value="none">No game (solo)</option>
+          <option value="stroke">Stroke play</option>
+          <option value="hammer">Hammer</option>
+        </select>
+
+        <div id="gameSettingsBlock" hidden>
+          <label class="settings-label" for="playerCountSelect">Players</label>
+          <select id="playerCountSelect" class="settings-select">
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
+          <div id="playersEditor" class="players-editor"></div>
+          <label class="settings-label" for="mePlayerSelect">This phone is</label>
+          <select id="mePlayerSelect" class="settings-select"></select>
+
+          <p class="settings-label">Room sync</p>
+          <p class="hcp-hint" id="syncHint">
+            Optional: create a room code so other phones share scores (tiny data, GPS never syncs).
+          </p>
+          <p class="room-code-display" id="roomCodeDisplay" hidden></p>
+          <div class="pad-actions">
+            <button type="button" class="pad-action" id="roomCreate">Create room</button>
+            <button type="button" class="pad-action" id="roomLeave" hidden>Leave room</button>
+          </div>
+          <div class="room-join-row">
+            <input
+              id="roomJoinInput"
+              class="hcp-input room-join-input"
+              type="text"
+              maxlength="6"
+              placeholder="CODE"
+              autocomplete="off"
+              autocapitalize="characters"
+            />
+            <button type="button" class="pad-action pad-done" id="roomJoin">Join</button>
+          </div>
+        </div>
+
+        <div class="pad-actions settings-footer">
+          <button type="button" class="pad-action" id="settingsClose">Cancel</button>
+          <button type="button" class="pad-action pad-done" id="settingsSave">Save</button>
+        </div>
+      </div>
+    </div>
 
     <div class="pad" id="teePad" hidden>
       <div class="pad-sheet">
@@ -160,6 +240,21 @@
       </div>
     </div>
 
-    <script src="app.js?v=13"></script>
+    <div class="pad" id="multiScorePad" hidden>
+      <div class="pad-sheet multi-score-sheet">
+        <p class="pad-title" id="multiPadTitle">Hole 1 scores</p>
+        <div id="multiScoreList" class="multi-score-list"></div>
+        <div class="pad-actions">
+          <button type="button" class="pad-action" id="multiPadClose">Cancel</button>
+          <button type="button" class="pad-action pad-done" id="multiPadDone">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="firebase-config.js?v=20"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+    <script src="sync.js?v=20"></script>
+    <script src="app.js?v=20"></script>
   </body>
 </html>

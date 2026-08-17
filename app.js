@@ -33,7 +33,7 @@
     function (event) {
       if (
         event.target.closest(
-          "button, a, input, label, [role='button'], .hole-score"
+          "button, a, input, label, select, [role='button'], .hole-score"
         )
       ) {
         lastTap = 0;
@@ -54,6 +54,7 @@
   var COLLAPSE_KEY = "golf-gps-scorecard-collapsed";
   var TEE_KEY = "golf-gps-tee-olde-salem-greens";
   var HCP_KEY = "golf-gps-handicap-v2";
+  var ROUND_KEY = "golf-gps-round-v1";
   var EARTH_RADIUS_YARDS = 6371000 / 0.9144;
   var IDLE_MS = 5 * 60 * 1000;
 
@@ -71,15 +72,33 @@
   var gpsPaused = false;
   var idleTimer = null;
   var summaryShownForComplete = false;
+  var pagerPage = 0;
+  var draftPlayers = [];
+  var multiDraft = {};
+
+  var roundState = {
+    gameType: "none",
+    roomCode: null,
+    mePlayerId: "p1",
+    players: [],
+    scores: {},
+    hammers: {},
+    updatedAt: 0,
+  };
 
   var els = {
+    appPager: document.getElementById("appPager"),
+    pagerTrack: document.getElementById("pagerTrack"),
     playView: document.getElementById("playView"),
+    gameView: document.getElementById("gameView"),
+    pagerHint: document.getElementById("pagerHint"),
     courseName: document.getElementById("courseName"),
     holeLabel: document.getElementById("holeLabel"),
     holeScore: document.getElementById("holeScore"),
     holeMeta: document.getElementById("holeMeta"),
     teeOpen: document.getElementById("teeOpen"),
     hcpOpen: document.getElementById("hcpOpen"),
+    settingsOpen: document.getElementById("settingsOpen"),
     distanceMid: document.getElementById("distanceMid"),
     distanceFront: document.getElementById("distanceFront"),
     distanceBack: document.getElementById("distanceBack"),
@@ -108,6 +127,34 @@
     hcpSave: document.getElementById("hcpSave"),
     hcpClear: document.getElementById("hcpClear"),
     hcpClose: document.getElementById("hcpClose"),
+    settingsPad: document.getElementById("settingsPad"),
+    gameTypeSelect: document.getElementById("gameTypeSelect"),
+    gameSettingsBlock: document.getElementById("gameSettingsBlock"),
+    playerCountSelect: document.getElementById("playerCountSelect"),
+    playersEditor: document.getElementById("playersEditor"),
+    mePlayerSelect: document.getElementById("mePlayerSelect"),
+    syncHint: document.getElementById("syncHint"),
+    roomCodeDisplay: document.getElementById("roomCodeDisplay"),
+    roomCreate: document.getElementById("roomCreate"),
+    roomLeave: document.getElementById("roomLeave"),
+    roomJoinInput: document.getElementById("roomJoinInput"),
+    roomJoin: document.getElementById("roomJoin"),
+    settingsClose: document.getElementById("settingsClose"),
+    settingsSave: document.getElementById("settingsSave"),
+    gameBackPlay: document.getElementById("gameBackPlay"),
+    gameSettingsOpen: document.getElementById("gameSettingsOpen"),
+    gameTitle: document.getElementById("gameTitle"),
+    gameHoleLabel: document.getElementById("gameHoleLabel"),
+    gameHammerStatus: document.getElementById("gameHammerStatus"),
+    gameEnterScores: document.getElementById("gameEnterScores"),
+    gameHammerBtn: document.getElementById("gameHammerBtn"),
+    gameBoard: document.getElementById("gameBoard"),
+    gameRoomLabel: document.getElementById("gameRoomLabel"),
+    multiScorePad: document.getElementById("multiScorePad"),
+    multiPadTitle: document.getElementById("multiPadTitle"),
+    multiScoreList: document.getElementById("multiScoreList"),
+    multiPadClose: document.getElementById("multiPadClose"),
+    multiPadDone: document.getElementById("multiPadDone"),
     summaryView: document.getElementById("summaryView"),
     summaryCourse: document.getElementById("summaryCourse"),
     summaryTotal: document.getElementById("summaryTotal"),
@@ -119,6 +166,190 @@
     summaryBack: document.getElementById("summaryBack"),
     summaryNewRound: document.getElementById("summaryNewRound"),
   };
+
+  function inGameMode() {
+    return roundState.gameType === "stroke" || roundState.gameType === "hammer";
+  }
+
+  function uid() {
+    return "p" + Math.random().toString(36).slice(2, 8);
+  }
+
+  function defaultPlayers(count) {
+    var list = [];
+    for (var i = 0; i < count; i++) {
+      list.push({
+        id: "p" + (i + 1),
+        name: i === 0 ? "Me" : "Player " + (i + 1),
+        handicap18: null,
+        handicapPlus: false,
+      });
+    }
+    return list;
+  }
+
+  function loadRoundState() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(ROUND_KEY) || "null");
+      if (!raw || typeof raw !== "object") return;
+      roundState.gameType = raw.gameType || "none";
+      roundState.roomCode = raw.roomCode || null;
+      roundState.mePlayerId = raw.mePlayerId || "p1";
+      roundState.players = Array.isArray(raw.players) ? raw.players : [];
+      roundState.scores = raw.scores || {};
+      roundState.hammers = raw.hammers || {};
+      roundState.updatedAt = raw.updatedAt || 0;
+      if (typeof raw.holeIndex === "number") holeIndex = raw.holeIndex;
+    } catch (e) {}
+  }
+
+  function persistRoundLocal() {
+    localStorage.setItem(
+      ROUND_KEY,
+      JSON.stringify({
+        gameType: roundState.gameType,
+        roomCode: roundState.roomCode,
+        mePlayerId: roundState.mePlayerId,
+        players: roundState.players,
+        scores: roundState.scores,
+        hammers: roundState.hammers,
+        holeIndex: holeIndex,
+        updatedAt: Date.now(),
+        tee: selectedTee,
+      })
+    );
+  }
+
+  function roundPayload() {
+    return {
+      courseId: "olde-salem-greens",
+      tee: selectedTee,
+      gameType: roundState.gameType,
+      roomCode: roundState.roomCode,
+      holeIndex: holeIndex,
+      mePlayerId: roundState.mePlayerId,
+      players: roundState.players,
+      scores: roundState.scores,
+      hammers: roundState.hammers,
+      updatedAt: Date.now(),
+    };
+  }
+
+  function saveRoundAndSync() {
+    persistRoundLocal();
+    if (
+      roundState.roomCode &&
+      window.GolfGpsSync &&
+      GolfGpsSync.isConfigured() &&
+      !GolfGpsSync.isApplyingRemote()
+    ) {
+      GolfGpsSync.pushRound(roundPayload()).catch(function () {});
+    }
+  }
+
+  function applyRemoteRound(data) {
+    if (!data) return;
+    roundState.gameType = data.gameType || roundState.gameType;
+    roundState.roomCode = data.roomCode || roundState.roomCode;
+    roundState.players = data.players || roundState.players;
+    roundState.scores = data.scores || {};
+    roundState.hammers = data.hammers || {};
+    if (data.mePlayerId) {
+      /* keep local mePlayerId — each phone picks who they are */
+    }
+    if (typeof data.holeIndex === "number") holeIndex = data.holeIndex;
+    if (data.tee) {
+      selectedTee = data.tee;
+      localStorage.setItem(TEE_KEY, selectedTee);
+    }
+    persistRoundLocal();
+    syncMeScoresFromRound();
+    updatePagerMode();
+    render();
+    renderGameBoard();
+  }
+
+  function syncMeScoresFromRound() {
+    if (!inGameMode()) return;
+    var mine = roundState.scores[roundState.mePlayerId] || {};
+    scores = {};
+    Object.keys(mine).forEach(function (h) {
+      scores[h] = mine[h];
+    });
+    saveScores();
+    var me = getMePlayer();
+    if (me) {
+      handicap18 = me.handicap18;
+      handicapPlus = !!me.handicapPlus;
+    }
+  }
+
+  function pushMeScoreToRound(holeNumber, value) {
+    if (!inGameMode()) return;
+    var pid = roundState.mePlayerId;
+    if (!roundState.scores[pid]) roundState.scores[pid] = {};
+    if (value == null) delete roundState.scores[pid][holeNumber];
+    else roundState.scores[pid][holeNumber] = value;
+    saveRoundAndSync();
+  }
+
+  function getMePlayer() {
+    for (var i = 0; i < roundState.players.length; i++) {
+      if (roundState.players[i].id === roundState.mePlayerId) {
+        return roundState.players[i];
+      }
+    }
+    return roundState.players[0] || null;
+  }
+
+  function playerHcp(player) {
+    return player && player.handicap18 != null && player.handicap18 > 0;
+  }
+
+  function courseHandicap9For(player) {
+    if (!playerHcp(player)) return 0;
+    return Math.round(player.handicap18 / 2);
+  }
+
+  function strokesOnHoleFor(player, hole) {
+    var n = courseHandicap9For(player);
+    if (n <= 0) return 0;
+    var full = Math.floor(n / 9);
+    var rem = n % 9;
+    if (!player.handicapPlus) return full + (hole.handicap <= rem ? 1 : 0);
+    return full + (hole.handicap > 9 - rem ? 1 : 0);
+  }
+
+  function netScoreFor(player, gross, hole) {
+    if (gross == null) return null;
+    var s = strokesOnHoleFor(player, hole);
+    return player.handicapPlus ? gross + s : gross - s;
+  }
+
+  function getPlayerScore(playerId, holeNumber) {
+    var map = roundState.scores[playerId] || {};
+    var value = map[holeNumber];
+    return typeof value === "number" ? value : null;
+  }
+
+  function setPlayerScore(playerId, holeNumber, value) {
+    if (!roundState.scores[playerId]) roundState.scores[playerId] = {};
+    if (value == null) delete roundState.scores[playerId][holeNumber];
+    else roundState.scores[playerId][holeNumber] = value;
+    if (playerId === roundState.mePlayerId) {
+      if (value == null) delete scores[holeNumber];
+      else scores[holeNumber] = value;
+      saveScores();
+    }
+    saveRoundAndSync();
+  }
+
+  function allPlayersScoredHole(holeNumber) {
+    if (!roundState.players.length) return false;
+    return roundState.players.every(function (p) {
+      return getPlayerScore(p.id, holeNumber) != null;
+    });
+  }
 
   function loadHandicap() {
     try {
@@ -143,13 +374,20 @@
         HCP_KEY,
         JSON.stringify({ value: handicap18, plus: handicapPlus })
       );
+    if (inGameMode()) {
+      var me = getMePlayer();
+      if (me) {
+        me.handicap18 = handicap18;
+        me.handicapPlus = handicapPlus;
+        saveRoundAndSync();
+      }
+    }
   }
 
   function hasHandicap() {
     return handicap18 != null && handicap18 > 0;
   }
 
-  /** 9-hole strokes from 18-hole handicap. */
   function courseHandicap9() {
     if (!hasHandicap()) return 0;
     return Math.round(handicap18 / 2);
@@ -160,9 +398,7 @@
     if (n <= 0) return 0;
     var full = Math.floor(n / 9);
     var rem = n % 9;
-    if (!handicapPlus) {
-      return full + (hole.handicap <= rem ? 1 : 0);
-    }
+    if (!handicapPlus) return full + (hole.handicap <= rem ? 1 : 0);
     return full + (hole.handicap > 9 - rem ? 1 : 0);
   }
 
@@ -245,6 +481,7 @@
     if (value == null) delete scores[holeNumber];
     else scores[holeNumber] = value;
     saveScores();
+    pushMeScoreToRound(holeNumber, value);
   }
 
   function roundTotals() {
@@ -312,6 +549,27 @@
     );
   }
 
+  function formatPlayerScoreHtml(player, gross, hole) {
+    if (gross == null) return "—";
+    var s = strokesOnHoleFor(player, hole);
+    var grossHtml =
+      '<span class="score-part ' +
+      scoreClass(gross, hole.par) +
+      '">' +
+      gross +
+      "</span>";
+    if (!playerHcp(player) || s === 0) return grossHtml;
+    var net = netScoreFor(player, gross, hole);
+    return (
+      grossHtml +
+      ' / <span class="score-part ' +
+      scoreClass(net, hole.par) +
+      '">' +
+      net +
+      "</span>"
+    );
+  }
+
   function bumpActivity() {
     clearTimeout(idleTimer);
     idleTimer = setTimeout(function () {
@@ -362,6 +620,7 @@
   }
 
   function updateHcpButton() {
+    els.hcpOpen.hidden = inGameMode();
     if (!hasHandicap()) {
       els.hcpOpen.textContent = "HCP —";
       return;
@@ -376,6 +635,34 @@
       var plus = btn.getAttribute("data-hcp-sign") === "plus";
       btn.classList.toggle("is-active", plus === handicapPlus);
     });
+  }
+
+  function updatePagerMode() {
+    var on = inGameMode();
+    els.gameView.hidden = !on;
+    els.pagerHint.hidden = !on;
+    els.appPager.classList.toggle("has-game", on);
+    if (!on) {
+      pagerPage = 0;
+      setPagerPage(0);
+    }
+    els.gameHammerBtn.hidden = roundState.gameType !== "hammer";
+    els.gameTitle.textContent =
+      roundState.gameType === "hammer" ? "Hammer" : "Stroke play";
+    if (roundState.roomCode) {
+      els.gameRoomLabel.hidden = false;
+      els.gameRoomLabel.textContent = "Room " + roundState.roomCode;
+    } else {
+      els.gameRoomLabel.hidden = true;
+    }
+  }
+
+  function setPagerPage(page) {
+    if (!inGameMode()) page = 0;
+    pagerPage = page;
+    els.pagerTrack.style.transform = "translateX(" + page * -50 + "%)";
+    els.appPager.classList.toggle("on-game", page === 1);
+    if (page === 1) renderGameBoard();
   }
 
   function openHcpPad() {
@@ -410,6 +697,7 @@
         localStorage.setItem(TEE_KEY, selectedTee);
         haptic(8);
         renderTeeOptions();
+        saveRoundAndSync();
         render();
       });
       els.teeOptions.appendChild(btn);
@@ -424,6 +712,163 @@
 
   function closeTeePad() {
     els.teePad.hidden = true;
+  }
+
+  function renderPlayersEditor() {
+    els.playersEditor.innerHTML = "";
+    draftPlayers.forEach(function (p, index) {
+      var row = document.createElement("div");
+      row.className = "player-edit-row";
+      row.innerHTML =
+        '<input class="hcp-input player-name-input" data-pi="' +
+        index +
+        '" type="text" maxlength="16" value="' +
+        (p.name || "").replace(/"/g, "&quot;") +
+        '" />' +
+        '<select class="settings-select player-hcp-sign" data-pi="' +
+        index +
+        '">' +
+        '<option value="minus"' +
+        (!p.handicapPlus ? " selected" : "") +
+        ">−</option>" +
+        '<option value="plus"' +
+        (p.handicapPlus ? " selected" : "") +
+        ">+</option>" +
+        "</select>" +
+        '<input class="hcp-input player-hcp-input" data-pi="' +
+        index +
+        '" type="number" inputmode="numeric" min="0" max="54" placeholder="HCP" value="' +
+        (p.handicap18 != null ? p.handicap18 : "") +
+        '" />';
+      els.playersEditor.appendChild(row);
+    });
+    els.mePlayerSelect.innerHTML = "";
+    draftPlayers.forEach(function (p) {
+      var opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = p.name || p.id;
+      if (p.id === roundState.mePlayerId) opt.selected = true;
+      els.mePlayerSelect.appendChild(opt);
+    });
+  }
+
+  function readDraftPlayersFromDom() {
+    draftPlayers.forEach(function (p, index) {
+      var nameEl = els.playersEditor.querySelector(
+        '.player-name-input[data-pi="' + index + '"]'
+      );
+      var signEl = els.playersEditor.querySelector(
+        '.player-hcp-sign[data-pi="' + index + '"]'
+      );
+      var hcpEl = els.playersEditor.querySelector(
+        '.player-hcp-input[data-pi="' + index + '"]'
+      );
+      if (nameEl) p.name = nameEl.value.trim() || "Player " + (index + 1);
+      if (signEl) p.handicapPlus = signEl.value === "plus";
+      if (hcpEl) {
+        var v = parseInt(hcpEl.value, 10);
+        p.handicap18 = hcpEl.value.trim() === "" || isNaN(v) ? null : Math.max(0, Math.min(54, v));
+      }
+    });
+  }
+
+  function updateSettingsGameVisibility() {
+    var t = els.gameTypeSelect.value;
+    els.gameSettingsBlock.hidden = t === "none";
+  }
+
+  function openSettingsPad() {
+    els.gameTypeSelect.value = roundState.gameType || "none";
+    if (!roundState.players.length) {
+      draftPlayers = defaultPlayers(2);
+    } else {
+      draftPlayers = roundState.players.map(function (p) {
+        return {
+          id: p.id,
+          name: p.name,
+          handicap18: p.handicap18,
+          handicapPlus: !!p.handicapPlus,
+        };
+      });
+    }
+    els.playerCountSelect.value = String(Math.max(2, Math.min(5, draftPlayers.length)));
+    renderPlayersEditor();
+    updateSettingsGameVisibility();
+    updateRoomUi();
+    if (window.GolfGpsSync && !GolfGpsSync.isConfigured()) {
+      els.syncHint.textContent =
+        "Room sync needs Firebase config (see SYNC.md). Local multi-player still works on this phone.";
+    } else {
+      els.syncHint.textContent =
+        "Optional: create a room code so other phones share scores (tiny data, GPS never syncs).";
+    }
+    els.settingsPad.hidden = false;
+  }
+
+  function closeSettingsPad() {
+    els.settingsPad.hidden = true;
+  }
+
+  function updateRoomUi() {
+    if (roundState.roomCode) {
+      els.roomCodeDisplay.hidden = false;
+      els.roomCodeDisplay.textContent = "Room " + roundState.roomCode;
+      els.roomLeave.hidden = false;
+    } else {
+      els.roomCodeDisplay.hidden = true;
+      els.roomLeave.hidden = true;
+    }
+  }
+
+  function saveSettingsFromPad() {
+    var type = els.gameTypeSelect.value;
+    if (type === "none") {
+      roundState.gameType = "none";
+      roundState.players = [];
+      roundState.scores = {};
+      roundState.hammers = {};
+      if (roundState.roomCode && window.GolfGpsSync) {
+        GolfGpsSync.disconnect();
+        roundState.roomCode = null;
+      }
+      persistRoundLocal();
+      updatePagerMode();
+      closeSettingsPad();
+      render();
+      return;
+    }
+
+    readDraftPlayersFromDom();
+    var count = parseInt(els.playerCountSelect.value, 10) || 2;
+    while (draftPlayers.length < count) {
+      draftPlayers.push({
+        id: uid(),
+        name: "Player " + (draftPlayers.length + 1),
+        handicap18: null,
+        handicapPlus: false,
+      });
+    }
+    draftPlayers = draftPlayers.slice(0, count);
+
+    var wasNone = !inGameMode();
+    roundState.gameType = type;
+    roundState.players = draftPlayers;
+    roundState.mePlayerId = els.mePlayerSelect.value || draftPlayers[0].id;
+    if (!roundState.scores) roundState.scores = {};
+    roundState.players.forEach(function (p) {
+      if (!roundState.scores[p.id]) roundState.scores[p.id] = {};
+    });
+    if (wasNone) {
+      Object.keys(scores).forEach(function (h) {
+        roundState.scores[roundState.mePlayerId][h] = scores[h];
+      });
+    }
+    syncMeScoresFromRound();
+    saveRoundAndSync();
+    updatePagerMode();
+    closeSettingsPad();
+    render();
+    renderGameBoard();
   }
 
   function renderTotals() {
@@ -475,6 +920,21 @@
     els.scorePad.hidden = true;
   }
 
+  function maybeAdvanceAfterMeScore(hadScore, scored) {
+    if (!scored || hadScore) return;
+    if (inGameMode()) {
+      if (
+        allPlayersScoredHole(course.holes[holeIndex].number) &&
+        holeIndex < course.holes.length - 1
+      ) {
+        holeIndex += 1;
+        saveRoundAndSync();
+      }
+      return;
+    }
+    if (holeIndex < course.holes.length - 1) holeIndex += 1;
+  }
+
   function commitPadScore() {
     if (!course) return;
     var hole = currentHole();
@@ -490,12 +950,13 @@
     }
     closeScorePad();
     haptic(14);
-    if (scored && !hadScore && holeIndex < course.holes.length - 1) {
-      holeIndex += 1;
+    if (scored && !hadScore) {
+      maybeAdvanceAfterMeScore(false, true);
     } else {
       pulseScore();
     }
     render();
+    renderGameBoard();
     if (!els.summaryView.hidden) openSummary();
   }
 
@@ -522,12 +983,173 @@
       btn.addEventListener("click", function () {
         holeIndex = index;
         haptic(8);
+        saveRoundAndSync();
         render();
         openScorePad();
       });
       els.scorecard.appendChild(btn);
     });
     renderTotals();
+  }
+
+  function hammerForHole(holeNumber) {
+    return roundState.hammers[holeNumber] || null;
+  }
+
+  function renderGameBoard() {
+    if (!course || !inGameMode()) return;
+    var hole = currentHole();
+    els.gameHoleLabel.textContent =
+      "Hole " + hole.number + " · Par " + hole.par;
+    var ham = hammerForHole(hole.number);
+    if (roundState.gameType === "hammer") {
+      els.gameHammerStatus.hidden = false;
+      els.gameHammerStatus.textContent = ham
+        ? "Hammer ×" + ham.multiplier
+        : "No hammer this hole";
+      els.gameHammerBtn.textContent = ham
+        ? "Hammer ×" + ham.multiplier * 2
+        : "Hammer";
+    } else {
+      els.gameHammerStatus.hidden = true;
+    }
+
+    var html =
+      '<table class="game-table"><thead><tr><th>Hole</th>';
+    roundState.players.forEach(function (p) {
+      html +=
+        "<th>" +
+        (p.name || p.id) +
+        (p.id === roundState.mePlayerId ? " *" : "") +
+        "</th>";
+    });
+    html += "</tr></thead><tbody>";
+    course.holes.forEach(function (h, idx) {
+      var hHam = hammerForHole(h.number);
+      html +=
+        '<tr class="' +
+        (idx === holeIndex ? "is-active" : "") +
+        '"><th>' +
+        h.number +
+        (hHam ? ' <span class="hammer-tag">×' + hHam.multiplier + "</span>" : "") +
+        "</th>";
+      roundState.players.forEach(function (p) {
+        var sc = getPlayerScore(p.id, h.number);
+        html += "<td>" + formatPlayerScoreHtml(p, sc, h) + "</td>";
+      });
+      html += "</tr>";
+    });
+    html += '<tr class="game-total-row"><th>Tot</th>';
+    roundState.players.forEach(function (p) {
+      var tot = 0;
+      var net = 0;
+      var n = 0;
+      course.holes.forEach(function (h) {
+        var sc = getPlayerScore(p.id, h.number);
+        if (sc != null) {
+          tot += sc;
+          net += netScoreFor(p, sc, h);
+          n += 1;
+        }
+      });
+      if (!n) html += "<td>—</td>";
+      else if (playerHcp(p)) html += "<td>" + tot + " / " + net + "</td>";
+      else html += "<td>" + tot + "</td>";
+    });
+    html += "</tr></tbody></table>";
+    els.gameBoard.innerHTML = html;
+  }
+
+  function openMultiScorePad() {
+    if (!course || !inGameMode()) return;
+    var hole = currentHole();
+    multiDraft = {};
+    els.multiPadTitle.textContent = "Hole " + hole.number + " scores";
+    els.multiScoreList.innerHTML = "";
+    roundState.players.forEach(function (p) {
+      var sc = getPlayerScore(p.id, hole.number);
+      multiDraft[p.id] = sc != null ? String(sc) : "";
+      var row = document.createElement("div");
+      row.className = "multi-score-row";
+      row.innerHTML =
+        '<span class="multi-score-name">' +
+        (p.name || p.id) +
+        "</span>" +
+        '<div class="multi-score-controls">' +
+        '<button type="button" class="score-quick-btn" data-multi-dec="' +
+        p.id +
+        '">−</button>' +
+        '<button type="button" class="multi-score-val" data-multi-val="' +
+        p.id +
+        '">' +
+        (multiDraft[p.id] || "—") +
+        "</button>" +
+        '<button type="button" class="score-quick-btn" data-multi-inc="' +
+        p.id +
+        '">+</button>' +
+        '<button type="button" class="score-quick-btn" data-multi-par="' +
+        p.id +
+        '">E</button>' +
+        "</div>";
+      els.multiScoreList.appendChild(row);
+    });
+    els.multiScorePad.hidden = false;
+  }
+
+  function refreshMultiVal(pid) {
+    var btn = els.multiScoreList.querySelector(
+      '[data-multi-val="' + pid + '"]'
+    );
+    if (btn) btn.textContent = multiDraft[pid] || "—";
+  }
+
+  function closeMultiScorePad() {
+    els.multiScorePad.hidden = true;
+  }
+
+  function commitMultiScores() {
+    if (!course) return;
+    var hole = currentHole();
+    var holeNum = hole.number;
+    roundState.players.forEach(function (p) {
+      var raw = multiDraft[p.id];
+      if (!raw) setPlayerScore(p.id, holeNum, null);
+      else {
+        var v = parseInt(raw, 10);
+        if (!isNaN(v) && v >= 1 && v <= 15) setPlayerScore(p.id, holeNum, v);
+      }
+    });
+    closeMultiScorePad();
+    haptic(14);
+    if (
+      allPlayersScoredHole(holeNum) &&
+      holeIndex < course.holes.length - 1
+    ) {
+      holeIndex += 1;
+      saveRoundAndSync();
+    }
+    render();
+    renderGameBoard();
+  }
+
+  function toggleHammer() {
+    if (!course || roundState.gameType !== "hammer") return;
+    var holeNum = currentHole().number;
+    var cur = hammerForHole(holeNum);
+    if (!cur) {
+      roundState.hammers[holeNum] = {
+        multiplier: 2,
+        byPlayerId: roundState.mePlayerId,
+      };
+    } else if (cur.multiplier >= 8) {
+      delete roundState.hammers[holeNum];
+    } else {
+      cur.multiplier = cur.multiplier * 2;
+      cur.byPlayerId = roundState.mePlayerId;
+    }
+    saveRoundAndSync();
+    haptic(16);
+    renderGameBoard();
   }
 
   function render() {
@@ -544,11 +1166,10 @@
     els.holeMeta.textContent = "Hcp " + hole.handicap + " · " + yards + " yd";
     updateTeeButton();
     updateHcpButton();
-
     updateDistances();
-
     updateCollapseUi();
     renderScorecard();
+    if (inGameMode() && pagerPage === 1) renderGameBoard();
   }
 
   function applyScore(value) {
@@ -558,12 +1179,13 @@
     if (value == null || value < 1) setScore(hole.number, null);
     else setScore(hole.number, Math.min(15, value));
     haptic(12);
-    if (value != null && value >= 1 && !hadScore && holeIndex < course.holes.length - 1) {
-      holeIndex += 1;
+    if (value != null && value >= 1 && !hadScore) {
+      maybeAdvanceAfterMeScore(false, true);
     } else {
       pulseScore();
     }
     render();
+    renderGameBoard();
   }
 
   function quickScore(action) {
@@ -592,7 +1214,9 @@
     if (!course) return;
     holeIndex = (holeIndex + step + course.holes.length) % course.holes.length;
     haptic(8);
+    saveRoundAndSync();
     render();
+    renderGameBoard();
   }
 
   function onPosition(pos) {
@@ -709,20 +1333,21 @@
       row.addEventListener("click", function () {
         holeIndex = index;
         haptic(8);
+        saveRoundAndSync();
         render();
         openScorePad();
       });
       els.summaryHoles.appendChild(row);
     });
 
-    els.playView.hidden = true;
+    els.appPager.hidden = true;
     els.summaryView.hidden = false;
     haptic(20);
   }
 
   function closeSummary() {
     els.summaryView.hidden = true;
-    els.playView.hidden = false;
+    els.appPager.hidden = false;
   }
 
   function summaryText() {
@@ -750,6 +1375,17 @@
           formatToPar(totals.strokes - totals.parPlayed) +
           ")"
       );
+    }
+    if (inGameMode()) {
+      lines.push("Game: " + roundState.gameType);
+      roundState.players.forEach(function (p) {
+        var tot = 0;
+        course.holes.forEach(function (h) {
+          var sc = getPlayerScore(p.id, h.number);
+          if (sc != null) tot += sc;
+        });
+        lines.push((p.name || p.id) + ": " + (tot || "—"));
+      });
     }
     lines.push("");
     var runScore = 0;
@@ -792,6 +1428,8 @@
               ")"
             : runScore + " (" + formatToPar(runScore - runPar) + ")");
       }
+      var ham = hammerForHole(hole.number);
+      if (ham) holeLine += "  hammer×" + ham.multiplier;
       lines.push(holeLine);
     });
     return lines.join("\n");
@@ -801,8 +1439,17 @@
     if (!course) return;
     scores = {};
     saveScores();
+    if (inGameMode()) {
+      roundState.scores = {};
+      roundState.players.forEach(function (p) {
+        roundState.scores[p.id] = {};
+      });
+      roundState.hammers = {};
+      saveRoundAndSync();
+    }
     summaryShownForComplete = false;
     render();
+    renderGameBoard();
   }
 
   function buildPadKeys() {
@@ -829,6 +1476,56 @@
       });
       els.padKeys.appendChild(btn);
     });
+  }
+
+  function setupPagerSwipe() {
+    var startX = 0;
+    var startY = 0;
+    var tracking = false;
+    els.appPager.addEventListener(
+      "touchstart",
+      function (e) {
+        if (!inGameMode() || e.touches.length !== 1) return;
+        if (e.target.closest(".pad, button, input, select, a")) return;
+        tracking = true;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+      },
+      { passive: true }
+    );
+    els.appPager.addEventListener(
+      "touchend",
+      function (e) {
+        if (!tracking) return;
+        tracking = false;
+        var t = e.changedTouches[0];
+        var dx = t.clientX - startX;
+        var dy = t.clientY - startY;
+        if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
+        if (dx < 0 && pagerPage === 0) setPagerPage(1);
+        else if (dx > 0 && pagerPage === 1) setPagerPage(0);
+      },
+      { passive: true }
+    );
+  }
+
+  function reconnectRoomIfNeeded() {
+    if (
+      !roundState.roomCode ||
+      !window.GolfGpsSync ||
+      !GolfGpsSync.isConfigured()
+    ) {
+      return;
+    }
+    GolfGpsSync.joinRoom(roundState.roomCode)
+      .then(function (data) {
+        applyRemoteRound(data);
+        GolfGpsSync.subscribe(applyRemoteRound);
+      })
+      .catch(function () {
+        roundState.roomCode = null;
+        persistRoundLocal();
+      });
   }
 
   els.prevHole.addEventListener("click", function () {
@@ -945,6 +1642,134 @@
     }
   });
 
+  els.settingsOpen.addEventListener("click", function () {
+    bumpActivity();
+    openSettingsPad();
+  });
+  els.gameSettingsOpen.addEventListener("click", openSettingsPad);
+  els.settingsClose.addEventListener("click", closeSettingsPad);
+  els.settingsPad.addEventListener("click", function (event) {
+    if (event.target === els.settingsPad) closeSettingsPad();
+  });
+  els.settingsSave.addEventListener("click", function () {
+    saveSettingsFromPad();
+    haptic(12);
+  });
+  els.gameTypeSelect.addEventListener("change", updateSettingsGameVisibility);
+  els.playerCountSelect.addEventListener("change", function () {
+    readDraftPlayersFromDom();
+    var count = parseInt(els.playerCountSelect.value, 10) || 2;
+    while (draftPlayers.length < count) {
+      draftPlayers.push({
+        id: uid(),
+        name: "Player " + (draftPlayers.length + 1),
+        handicap18: null,
+        handicapPlus: false,
+      });
+    }
+    draftPlayers = draftPlayers.slice(0, count);
+    renderPlayersEditor();
+  });
+
+  els.roomCreate.addEventListener("click", function () {
+    if (!window.GolfGpsSync || !GolfGpsSync.isConfigured()) {
+      window.alert("Add Firebase config in firebase-config.js (see SYNC.md).");
+      return;
+    }
+    if (els.gameTypeSelect.value === "none") {
+      window.alert("Pick Stroke play or Hammer first.");
+      return;
+    }
+    readDraftPlayersFromDom();
+    saveSettingsFromPad();
+    if (!inGameMode()) return;
+    GolfGpsSync.createRoom(roundPayload())
+      .then(function (code) {
+        roundState.roomCode = code;
+        persistRoundLocal();
+        GolfGpsSync.subscribe(applyRemoteRound);
+        updateRoomUi();
+        updatePagerMode();
+        openSettingsPad();
+        haptic(14);
+      })
+      .catch(function (err) {
+        window.alert(err.message || "Could not create room");
+      });
+  });
+
+  els.roomJoin.addEventListener("click", function () {
+    if (!window.GolfGpsSync || !GolfGpsSync.isConfigured()) {
+      window.alert("Add Firebase config in firebase-config.js (see SYNC.md).");
+      return;
+    }
+    var code = els.roomJoinInput.value;
+    GolfGpsSync.joinRoom(code)
+      .then(function (data) {
+        roundState.roomCode = data.roomCode || String(code).toUpperCase();
+        applyRemoteRound(data);
+        if (!roundState.mePlayerId && roundState.players[0]) {
+          roundState.mePlayerId = roundState.players[0].id;
+        }
+        GolfGpsSync.subscribe(applyRemoteRound);
+        updateRoomUi();
+        updatePagerMode();
+        closeSettingsPad();
+        setPagerPage(1);
+        haptic(14);
+      })
+      .catch(function (err) {
+        window.alert(err.message || "Could not join room");
+      });
+  });
+
+  els.roomLeave.addEventListener("click", function () {
+    if (window.GolfGpsSync) GolfGpsSync.disconnect();
+    roundState.roomCode = null;
+    persistRoundLocal();
+    updateRoomUi();
+    updatePagerMode();
+    haptic(8);
+  });
+
+  els.gameBackPlay.addEventListener("click", function () {
+    setPagerPage(0);
+  });
+  els.gameEnterScores.addEventListener("click", openMultiScorePad);
+  els.gameHammerBtn.addEventListener("click", toggleHammer);
+  els.multiPadClose.addEventListener("click", closeMultiScorePad);
+  els.multiPadDone.addEventListener("click", commitMultiScores);
+  els.multiScorePad.addEventListener("click", function (event) {
+    if (event.target === els.multiScorePad) closeMultiScorePad();
+  });
+  els.multiScoreList.addEventListener("click", function (event) {
+    var t = event.target;
+    var hole = course && currentHole();
+    if (!hole) return;
+    var par = hole.par;
+    var dec = t.getAttribute("data-multi-dec");
+    var inc = t.getAttribute("data-multi-inc");
+    var setPar = t.getAttribute("data-multi-par");
+    var pid = dec || inc || setPar;
+    if (!pid) return;
+    var cur = multiDraft[pid] ? parseInt(multiDraft[pid], 10) : null;
+    if (dec) {
+      if (cur == null) multiDraft[pid] = String(Math.max(1, par - 1));
+      else if (cur <= 1) multiDraft[pid] = "";
+      else multiDraft[pid] = String(cur - 1);
+    } else if (inc) {
+      multiDraft[pid] = String(cur == null ? par + 1 : Math.min(15, cur + 1));
+    } else if (setPar) {
+      multiDraft[pid] = String(par);
+    }
+    refreshMultiVal(pid);
+    haptic(6);
+  });
+
+  els.pagerHint.addEventListener("click", function () {
+    if (inGameMode()) setPagerPage(1);
+  });
+
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) pauseGps("GPS paused");
     else {
@@ -983,9 +1808,11 @@
     localStorage.removeItem("golf-gps-handicap-index");
   } catch (e) {}
 
+  setupPagerSwipe();
   buildPadKeys();
   loadScores();
   loadHandicap();
+  loadRoundState();
   if (["gold", "blue", "white", "red"].indexOf(selectedTee) === -1) {
     selectedTee = "blue";
   }
@@ -998,9 +1825,13 @@
     .then(function (data) {
       course = data;
       if (!course.tees[selectedTee]) selectedTee = course.defaultTee || "blue";
+      if (inGameMode()) syncMeScoresFromRound();
+      updatePagerMode();
       render();
+      renderGameBoard();
       startGpsWatch();
       bumpActivity();
+      reconnectRoomIfNeeded();
     })
     .catch(function () {
       setStatus("Could not load course JSON.");

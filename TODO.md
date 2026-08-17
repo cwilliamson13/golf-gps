@@ -15,3 +15,4 @@
 - [x] Haptics / score pulse
 - [x] Score vs-par colors
 - [x] GPS pause when backgrounded / idle
+- [x] Multiplayer games (stroke / hammer), swipe scoreboard, room sync (Firebase optional)

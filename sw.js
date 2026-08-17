@@ -1,10 +1,12 @@
 // Bump CACHE_NAME when clients are stuck on an old build (iOS home screen).
-var CACHE_NAME = "golf-gps-v13";
+var CACHE_NAME = "golf-gps-v20";
 var ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=13",
-  "./app.js?v=13",
+  "./styles.css?v=20",
+  "./app.js?v=20",
+  "./sync.js?v=20",
+  "./firebase-config.js?v=20",
   "./manifest.webmanifest",
   "./data/olde-salem-greens.json",
   "./icons/favicon.svg",
@@ -38,6 +40,14 @@ self.addEventListener("activate", function (event) {
 
 self.addEventListener("fetch", function (event) {
   if (event.request.method !== "GET") return;
+  var url = event.request.url;
+  if (
+    url.indexOf("firebaseio.com") !== -1 ||
+    url.indexOf("googleapis.com") !== -1 ||
+    url.indexOf("gstatic.com") !== -1
+  ) {
+    return;
+  }
 
   event.respondWith(
     fetch(event.request, { cache: "reload" })
