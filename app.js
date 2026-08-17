@@ -130,7 +130,9 @@
     settingsPad: document.getElementById("settingsPad"),
     gameTypeSelect: document.getElementById("gameTypeSelect"),
     gameSettingsBlock: document.getElementById("gameSettingsBlock"),
-    playerCountSelect: document.getElementById("playerCountSelect"),
+    playerCountInput: document.getElementById("playerCountInput"),
+    playerCountDec: document.getElementById("playerCountDec"),
+    playerCountInc: document.getElementById("playerCountInc"),
     playersEditor: document.getElementById("playersEditor"),
     mePlayerSelect: document.getElementById("mePlayerSelect"),
     syncHint: document.getElementById("syncHint"),
@@ -146,7 +148,7 @@
     gameTitle: document.getElementById("gameTitle"),
     gameHoleLabel: document.getElementById("gameHoleLabel"),
     gameHammerStatus: document.getElementById("gameHammerStatus"),
-    gameEnterScores: document.getElementById("gameEnterScores"),
+    enterScoresBtn: document.getElementById("enterScoresBtn"),
     gameHammerBtn: document.getElementById("gameHammerBtn"),
     gameBoard: document.getElementById("gameBoard"),
     gameRoomLabel: document.getElementById("gameRoomLabel"),
@@ -641,12 +643,15 @@
     var on = inGameMode();
     els.gameView.hidden = !on;
     els.pagerHint.hidden = !on;
+    els.enterScoresBtn.hidden = !on;
     els.appPager.classList.toggle("has-game", on);
     if (!on) {
       pagerPage = 0;
       setPagerPage(0);
     }
     els.gameHammerBtn.hidden = roundState.gameType !== "hammer";
+    var actions = els.gameHammerBtn.parentElement;
+    if (actions) actions.hidden = roundState.gameType !== "hammer";
     els.gameTitle.textContent =
       roundState.gameType === "hammer" ? "Hammer" : "Stroke play";
     if (roundState.roomCode) {
@@ -719,25 +724,29 @@
     draftPlayers.forEach(function (p, index) {
       var row = document.createElement("div");
       row.className = "player-edit-row";
+      var minusActive = !p.handicapPlus ? " is-active" : "";
+      var plusActive = p.handicapPlus ? " is-active" : "";
       row.innerHTML =
         '<input class="hcp-input player-name-input" data-pi="' +
         index +
         '" type="text" maxlength="16" value="' +
         (p.name || "").replace(/"/g, "&quot;") +
         '" />' +
-        '<select class="settings-select player-hcp-sign" data-pi="' +
+        '<div class="hcp-sign player-hcp-sign-row" role="group" aria-label="Handicap type">' +
+        '<button type="button" class="hcp-sign-btn' +
+        minusActive +
+        '" data-pi="' +
         index +
-        '">' +
-        '<option value="minus"' +
-        (!p.handicapPlus ? " selected" : "") +
-        ">−</option>" +
-        '<option value="plus"' +
-        (p.handicapPlus ? " selected" : "") +
-        ">+</option>" +
-        "</select>" +
+        '" data-player-hcp-sign="minus">− HCP</button>' +
+        '<button type="button" class="hcp-sign-btn' +
+        plusActive +
+        '" data-pi="' +
+        index +
+        '" data-player-hcp-sign="plus">+ HCP</button>' +
+        "</div>" +
         '<input class="hcp-input player-hcp-input" data-pi="' +
         index +
-        '" type="number" inputmode="numeric" min="0" max="54" placeholder="HCP" value="' +
+        '" type="number" inputmode="numeric" min="0" max="54" placeholder="—" value="' +
         (p.handicap18 != null ? p.handicap18 : "") +
         '" />';
       els.playersEditor.appendChild(row);
@@ -757,19 +766,45 @@
       var nameEl = els.playersEditor.querySelector(
         '.player-name-input[data-pi="' + index + '"]'
       );
-      var signEl = els.playersEditor.querySelector(
-        '.player-hcp-sign[data-pi="' + index + '"]'
-      );
       var hcpEl = els.playersEditor.querySelector(
         '.player-hcp-input[data-pi="' + index + '"]'
       );
+      var plusBtn = els.playersEditor.querySelector(
+        '.hcp-sign-btn.is-active[data-pi="' +
+          index +
+          '"][data-player-hcp-sign="plus"]'
+      );
       if (nameEl) p.name = nameEl.value.trim() || "Player " + (index + 1);
-      if (signEl) p.handicapPlus = signEl.value === "plus";
+      p.handicapPlus = !!plusBtn;
       if (hcpEl) {
         var v = parseInt(hcpEl.value, 10);
-        p.handicap18 = hcpEl.value.trim() === "" || isNaN(v) ? null : Math.max(0, Math.min(54, v));
+        p.handicap18 =
+          hcpEl.value.trim() === "" || isNaN(v)
+            ? null
+            : Math.max(0, Math.min(54, v));
       }
     });
+  }
+
+  function clampPlayerCount(n) {
+    if (isNaN(n)) return 2;
+    return Math.max(2, Math.min(5, Math.round(n)));
+  }
+
+  function resizeDraftPlayers(count) {
+    count = clampPlayerCount(count);
+    readDraftPlayersFromDom();
+    while (draftPlayers.length < count) {
+      draftPlayers.push({
+        id: uid(),
+        name: "Player " + (draftPlayers.length + 1),
+        handicap18: null,
+        handicapPlus: false,
+      });
+    }
+    draftPlayers = draftPlayers.slice(0, count);
+    els.playerCountInput.value = String(count);
+    renderPlayersEditor();
   }
 
   function updateSettingsGameVisibility() {
@@ -791,7 +826,9 @@
         };
       });
     }
-    els.playerCountSelect.value = String(Math.max(2, Math.min(5, draftPlayers.length)));
+    els.playerCountInput.value = String(
+      clampPlayerCount(Math.max(2, draftPlayers.length))
+    );
     renderPlayersEditor();
     updateSettingsGameVisibility();
     updateRoomUi();
@@ -839,7 +876,7 @@
     }
 
     readDraftPlayersFromDom();
-    var count = parseInt(els.playerCountSelect.value, 10) || 2;
+    var count = clampPlayerCount(parseInt(els.playerCountInput.value, 10) || 2);
     while (draftPlayers.length < count) {
       draftPlayers.push({
         id: uid(),
@@ -1656,19 +1693,35 @@
     haptic(12);
   });
   els.gameTypeSelect.addEventListener("change", updateSettingsGameVisibility);
-  els.playerCountSelect.addEventListener("change", function () {
-    readDraftPlayersFromDom();
-    var count = parseInt(els.playerCountSelect.value, 10) || 2;
-    while (draftPlayers.length < count) {
-      draftPlayers.push({
-        id: uid(),
-        name: "Player " + (draftPlayers.length + 1),
-        handicap18: null,
-        handicapPlus: false,
+  els.playerCountDec.addEventListener("click", function () {
+    var n = clampPlayerCount((parseInt(els.playerCountInput.value, 10) || 2) - 1);
+    resizeDraftPlayers(n);
+    haptic(6);
+  });
+  els.playerCountInc.addEventListener("click", function () {
+    var n = clampPlayerCount((parseInt(els.playerCountInput.value, 10) || 2) + 1);
+    resizeDraftPlayers(n);
+    haptic(6);
+  });
+  els.playerCountInput.addEventListener("change", function () {
+    resizeDraftPlayers(parseInt(els.playerCountInput.value, 10) || 2);
+  });
+  els.playersEditor.addEventListener("click", function (event) {
+    var btn = event.target.closest("[data-player-hcp-sign]");
+    if (!btn) return;
+    var index = parseInt(btn.getAttribute("data-pi"), 10);
+    var plus = btn.getAttribute("data-player-hcp-sign") === "plus";
+    if (isNaN(index) || !draftPlayers[index]) return;
+    draftPlayers[index].handicapPlus = plus;
+    els.playersEditor
+      .querySelectorAll('.hcp-sign-btn[data-pi="' + index + '"]')
+      .forEach(function (el) {
+        el.classList.toggle(
+          "is-active",
+          el.getAttribute("data-player-hcp-sign") === (plus ? "plus" : "minus")
+        );
       });
-    }
-    draftPlayers = draftPlayers.slice(0, count);
-    renderPlayersEditor();
+    haptic(6);
   });
 
   els.roomCreate.addEventListener("click", function () {
@@ -1735,7 +1788,10 @@
   els.gameBackPlay.addEventListener("click", function () {
     setPagerPage(0);
   });
-  els.gameEnterScores.addEventListener("click", openMultiScorePad);
+  els.enterScoresBtn.addEventListener("click", function () {
+    bumpActivity();
+    openMultiScorePad();
+  });
   els.gameHammerBtn.addEventListener("click", toggleHammer);
   els.multiPadClose.addEventListener("click", closeMultiScorePad);
   els.multiPadDone.addEventListener("click", commitMultiScores);
