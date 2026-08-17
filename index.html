@@ -17,7 +17,7 @@
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
     <link rel="icon" href="icons/favicon.svg" type="image/svg+xml" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css?v=33" />
+    <link rel="stylesheet" href="styles.css?v=36" />
     <title>Golf GPS</title>
   </head>
   <body>
@@ -69,12 +69,14 @@
                 <button type="button" class="nav-btn play-action-btn" id="enterScoresBtn">
                   Enter scores
                 </button>
-                <button type="button" class="nav-btn play-action-btn" id="gameHammerBtn" hidden>
-                  Hammer
-                </button>
-                <button type="button" class="nav-btn play-action-btn" id="gameHammerUndoBtn" hidden>
-                  Undo hammer
-                </button>
+                <div class="play-hammer-row" id="playHammerRow" hidden>
+                  <button type="button" class="nav-btn play-action-btn" id="gameHammerBtn">
+                    Hammer to 2x
+                  </button>
+                  <button type="button" class="nav-btn play-action-btn" id="gameHammerClearBtn">
+                    Clear hammer
+                  </button>
+                </div>
                 <button type="button" class="nav-btn play-action-btn" id="drawTeamsBtn" hidden>
                   Random team draw
                 </button>
@@ -338,6 +340,14 @@
       </div>
     </div>
 
-    <script src="app.js?v=33"></script>
+    <div class="pad" id="hammerPad" hidden>
+      <div class="pad-sheet">
+        <p class="pad-title" id="hammerPadTitle">Hole 1 hammer</p>
+        <div class="hammer-options" id="hammerOptions"></div>
+        <button type="button" class="pad-action pad-done" id="hammerPadClose">Done</button>
+      </div>
+    </div>
+
+    <script src="app.js?v=36"></script>
   </body>
 </html>
