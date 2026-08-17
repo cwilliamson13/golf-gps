@@ -1030,15 +1030,6 @@ body {
   font-weight: 500;
 }
 
-.hole-tie-mark {
-  display: block;
-  margin-top: 0.05rem;
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: var(--muted);
-  text-align: center;
-}
-
 .hammer-options {
   display: grid;
   gap: 0.55rem;
@@ -1090,57 +1081,67 @@ body {
   text-transform: none;
 }
 
+.game-table td.score-cell {
+  position: relative;
+}
+
 .game-table td.score-cell .score-win-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.05rem;
-  max-width: 100%;
-  padding: 0.18rem 0.42rem;
+  position: relative;
+  display: inline-block;
+  line-height: inherit;
+  white-space: nowrap;
+}
+
+.game-table td.score-cell.is-hole-win .score-win-mark::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(100% + 1.05rem);
+  height: calc(100% + 0.85rem);
+  transform: translate(-50%, -50%);
   border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent);
   border-radius: 999px;
-  line-height: 1.15;
-  white-space: nowrap;
+  pointer-events: none;
   box-sizing: border-box;
 }
 
-.game-table td.score-cell.is-win-group {
-  padding-left: 0.12rem;
-  padding-right: 0.12rem;
+.game-table td.score-cell.is-win-group::after {
+  content: "";
+  position: absolute;
+  top: 0.15rem;
+  bottom: 0.15rem;
+  border-top: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  border-bottom: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  pointer-events: none;
+  box-sizing: border-box;
 }
 
-.game-table td.score-cell.is-win-group-start {
-  text-align: right;
-  padding-right: 0;
-}
-
-.game-table td.score-cell.is-win-group-end {
-  text-align: left;
-  padding-left: 0;
-}
-
-.game-table td.score-cell.is-win-group .score-win-mark {
-  border-radius: 0;
-}
-
-.game-table td.score-cell.is-win-group-start .score-win-mark {
+.game-table td.score-cell.is-win-group-start::after {
+  left: 0.1rem;
+  right: 0;
+  border-left: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent);
   border-radius: 999px 0 0 999px;
-  border-right: none;
-  padding-right: 0.5rem;
 }
 
-.game-table td.score-cell.is-win-group-end .score-win-mark {
+.game-table td.score-cell.is-win-group-end::after {
+  left: 0;
+  right: 0.1rem;
+  border-right: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent);
   border-radius: 0 999px 999px 0;
-  border-left: none;
-  padding-left: 0.5rem;
 }
 
-.game-table td.score-cell.is-win-group:not(.is-win-group-start):not(.is-win-group-end) .score-win-mark {
-  border-left: none;
-  border-right: none;
-  border-radius: 0;
-  padding-left: 0.35rem;
-  padding-right: 0.35rem;
+.game-table
+  td.score-cell.is-win-group:not(.is-win-group-start):not(.is-win-group-end)::after {
+  left: 0;
+  right: 0;
+}
+
+.game-table td.score-cell.is-win-group.is-win-group-start.is-win-group-end::after {
+  left: 0.1rem;
+  right: 0.1rem;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 999px;
 }
 
 .pts-col,

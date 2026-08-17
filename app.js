@@ -1791,8 +1791,6 @@
     var compact = players.length <= 4;
     var teamRuns = teamMode ? computeTeamMatchRuns() : null;
     var isBestBall = roundState.teamScoreMode === "bestball";
-    var runA = 0;
-    var runB = 0;
 
     function scoreCellHtml(p, h, winClass) {
       var sc = getPlayerScore(p.id, h.number);
@@ -1935,16 +1933,9 @@
     course.holes.forEach(function (h, idx) {
       var hHam = hammerForHole(h.number);
       var swing = teamMode ? holeTeamSwing(h) : null;
-      var holeTie = !!(swing && swing.tie);
       var winClass = "";
       if (swing && swing.winner === "A") winClass = " won-a";
       else if (swing && swing.winner === "B") winClass = " won-b";
-      else if (holeTie) winClass = " won-tie";
-
-      if (swing && swing.decided) {
-        runA += swing.A;
-        runB += swing.B;
-      }
 
       var holeCell =
         '<button type="button" class="hole-select-btn" data-select-hole="' +
@@ -1966,8 +1957,6 @@
             : '<span class="hammer-tag is-off">·</span>') +
           "</button>";
       }
-      if (holeTie)
-        holeCell += '<span class="hole-tie-mark" title="Halved">=</span>';
 
       html +=
         '<tr class="' +
@@ -1985,7 +1974,7 @@
         });
         html +=
           '<td class="pts-cell">' +
-          (swing && swing.decided ? formatSignedPoints(runA) : "·") +
+          (swing && swing.decided ? formatSignedPoints(swing.A) : "·") +
           "</td>";
         teamB.forEach(function (p, i) {
           html += scoreCellHtml(
@@ -1996,7 +1985,7 @@
         });
         html +=
           '<td class="pts-cell">' +
-          (swing && swing.decided ? formatSignedPoints(runB) : "·") +
+          (swing && swing.decided ? formatSignedPoints(swing.B) : "·") +
           "</td>";
       } else {
         var winnerIds = {};
