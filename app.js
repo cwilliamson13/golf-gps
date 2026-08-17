@@ -158,7 +158,8 @@
     gameHoleLabel: document.getElementById("gameHoleLabel"),
     gameHammerStatus: document.getElementById("gameHammerStatus"),
     enterScoresBtn: document.getElementById("enterScoresBtn"),
-    gameActions: document.getElementById("gameActions"),
+    playGameActions: document.getElementById("playGameActions"),
+    scoreQuick: document.getElementById("scoreQuick"),
     gameHammerBtn: document.getElementById("gameHammerBtn"),
     gameHammerUndoBtn: document.getElementById("gameHammerUndoBtn"),
     drawTeamsBtn: document.getElementById("drawTeamsBtn"),
@@ -741,7 +742,9 @@
 
   function updatePagerMode() {
     var multi = isMultiMode();
+    els.playGameActions.hidden = !multi;
     els.enterScoresBtn.hidden = !multi;
+    els.scoreQuick.hidden = multi;
     els.appPager.classList.add("has-game");
     els.scorecard.hidden = multi;
     els.gameBoard.hidden = !multi;
@@ -759,19 +762,32 @@
       els.gameTitle.textContent = "Track Scores";
     else els.gameTitle.textContent = "Scorecard";
 
+    updatePlayGameActions();
+    updateTeamsLabel();
+  }
+
+  function updatePlayGameActions() {
+    if (!isMultiMode()) {
+      els.gameHammerBtn.hidden = true;
+      els.gameHammerUndoBtn.hidden = true;
+      els.drawTeamsBtn.hidden = true;
+      return;
+    }
     var showHammer = roundState.gameType === "hammer";
     var showDraw =
-      multi &&
       roundState.teamsEnabled &&
       roundState.teamRandom === "end" &&
       !roundState.teamsDrawn;
     var hamNow =
       showHammer && course ? hammerForHole(currentHole().number) : null;
     els.gameHammerBtn.hidden = !showHammer;
+    if (showHammer) {
+      els.gameHammerBtn.textContent = hamNow
+        ? "Hammer ×" + hamNow.multiplier * 2
+        : "Hammer";
+    }
     els.gameHammerUndoBtn.hidden = !hamNow;
     els.drawTeamsBtn.hidden = !showDraw;
-    els.gameActions.hidden = !(showHammer || showDraw);
-    updateTeamsLabel();
   }
 
   function updateTeamsLabel() {
@@ -1318,14 +1334,10 @@
       els.gameHammerStatus.textContent = ham
         ? "Hammer ×" + ham.multiplier
         : "No hammer this hole";
-      els.gameHammerBtn.textContent = ham
-        ? "Hammer ×" + ham.multiplier * 2
-        : "Hammer";
-      els.gameHammerUndoBtn.hidden = !ham;
     } else {
       els.gameHammerStatus.hidden = true;
-      els.gameHammerUndoBtn.hidden = true;
     }
+    updatePlayGameActions();
     updateTeamsLabel();
 
     var showTeams =
@@ -1555,7 +1567,7 @@
     }
     persistRoundLocal();
     haptic(16);
-    updatePagerMode();
+    updatePlayGameActions();
     renderGameBoard();
   }
 
@@ -1568,7 +1580,7 @@
     else cur.multiplier = Math.round(cur.multiplier / 2);
     persistRoundLocal();
     haptic(10);
-    updatePagerMode();
+    updatePlayGameActions();
     renderGameBoard();
   }
 
@@ -1587,6 +1599,7 @@
     updateTeeButton();
     updateHcpButton();
     updateDistances();
+    updatePlayGameActions();
     if (isMultiMode()) {
       renderTotals();
       if (pagerPage === 1) renderGameBoard();
@@ -1638,6 +1651,7 @@
     holeIndex = (holeIndex + step + course.holes.length) % course.holes.length;
     haptic(8);
     persistRoundLocal();
+    updatePlayGameActions();
     render();
     renderGameBoard();
   }

@@ -782,8 +782,7 @@ body {
 }
 
 .solo-swipe-scorecard[hidden],
-.game-board[hidden],
-.game-actions[hidden] {
+.game-board[hidden] {
   display: none;
 }
 
@@ -882,17 +881,6 @@ body {
   margin: 0 0 0.75rem;
   font-size: 0.9rem;
   color: var(--accent);
-}
-
-.game-actions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
-  gap: 0.55rem;
-  margin-bottom: 0.85rem;
-}
-
-.game-actions .nav-btn {
-  min-height: 3.25rem;
 }
 
 .game-board {
@@ -1139,13 +1127,23 @@ body {
   min-height: 3.25rem;
 }
 
-.enter-scores-btn {
-  width: 100%;
-  min-height: 3.25rem;
+.play-game-actions {
+  display: grid;
+  gap: 0.55rem;
   margin-bottom: 0.55rem;
 }
 
-.enter-scores-btn[hidden] {
+.play-game-actions[hidden],
+.score-quick[hidden] {
+  display: none;
+}
+
+.play-action-btn {
+  width: 100%;
+  min-height: 3.25rem;
+}
+
+.play-action-btn[hidden] {
   display: none;
 }
 
