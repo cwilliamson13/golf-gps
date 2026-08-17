@@ -17,7 +17,7 @@
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
     <link rel="icon" href="icons/favicon.svg" type="image/svg+xml" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css?v=25" />
+    <link rel="stylesheet" href="styles.css?v=27" />
     <title>Golf GPS</title>
   </head>
   <body>
@@ -145,6 +145,7 @@
           <option value="none">Solo</option>
           <option value="track">Track Scores</option>
           <option value="stroke">Stroke Play</option>
+          <option value="quota">Quota Points</option>
           <option value="hammer">Hammer</option>
         </select>
 
@@ -178,6 +179,10 @@
             Use teams
           </label>
           <div id="teamsOptions" class="teams-options" hidden>
+            <div class="team-names-row">
+              <input id="teamNameA" class="hcp-input" type="text" maxlength="16" value="Team A" />
+              <input id="teamNameB" class="hcp-input" type="text" maxlength="16" value="Team B" />
+            </div>
             <div class="hcp-sign" id="teamRandomGroup" role="group" aria-label="Team assignment">
               <button type="button" class="hcp-sign-btn is-active" data-team-random="manual">
                 Manual
@@ -202,6 +207,58 @@
       </div>
     </div>
 
+    <div class="pad" id="playerEditPad" hidden>
+      <div class="pad-sheet settings-sheet">
+        <p class="pad-title" id="playerEditTitle">Player 1</p>
+        <label class="settings-label" for="playerEditName">Name</label>
+        <input id="playerEditName" class="hcp-input" type="text" maxlength="16" />
+        <label class="settings-label" for="playerEditHcp">Handicap</label>
+        <div class="player-edit-hcp-row">
+          <div class="hcp-sign player-hcp-compact" role="group" aria-label="Handicap type">
+            <button type="button" class="hcp-sign-btn is-active" data-edit-hcp-sign="minus">−</button>
+            <button type="button" class="hcp-sign-btn" data-edit-hcp-sign="plus">+</button>
+          </div>
+          <input
+            id="playerEditHcp"
+            class="hcp-input"
+            type="number"
+            inputmode="numeric"
+            min="0"
+            max="54"
+            placeholder="—"
+          />
+        </div>
+        <div id="playerEditTeamBlock" hidden>
+          <p class="settings-label">Team</p>
+          <div class="hcp-sign" role="group" aria-label="Team">
+            <button type="button" class="hcp-sign-btn is-active" id="playerEditTeamA" data-edit-team="A">
+              Team A
+            </button>
+            <button type="button" class="hcp-sign-btn" id="playerEditTeamB" data-edit-team="B">
+              Team B
+            </button>
+          </div>
+        </div>
+        <div id="playerEditQuotaBlock" hidden>
+          <label class="settings-label" for="playerEditQuota">Quota</label>
+          <input
+            id="playerEditQuota"
+            class="hcp-input"
+            type="number"
+            inputmode="numeric"
+            min="0"
+            max="50"
+            step="1"
+            value="18"
+          />
+        </div>
+        <div class="pad-actions settings-footer">
+          <button type="button" class="pad-action" id="playerEditCancel">Cancel</button>
+          <button type="button" class="pad-action pad-done" id="playerEditSave">Done</button>
+        </div>
+      </div>
+    </div>
+
     <div class="pad" id="teePad" hidden>
       <div class="pad-sheet">
         <p class="pad-title">Select tee</p>
@@ -216,24 +273,22 @@
         <p class="hcp-hint">
           Enter your 18-hole handicap. Strokes are halved for this 9-hole course.
         </p>
-        <div class="hcp-sign" role="group" aria-label="Handicap type">
-          <button type="button" class="hcp-sign-btn is-active" data-hcp-sign="minus">
-            − Handicap
-          </button>
-          <button type="button" class="hcp-sign-btn" data-hcp-sign="plus">
-            + Handicap
-          </button>
+        <div class="player-edit-hcp-row">
+          <div class="hcp-sign player-hcp-compact" role="group" aria-label="Handicap type">
+            <button type="button" class="hcp-sign-btn is-active" data-hcp-sign="minus">−</button>
+            <button type="button" class="hcp-sign-btn" data-hcp-sign="plus">+</button>
+          </div>
+          <input
+            id="hcpInput"
+            class="hcp-input"
+            type="number"
+            inputmode="numeric"
+            step="1"
+            min="0"
+            max="54"
+            placeholder="—"
+          />
         </div>
-        <input
-          id="hcpInput"
-          class="hcp-input"
-          type="number"
-          inputmode="numeric"
-          step="1"
-          min="0"
-          max="54"
-          placeholder="—"
-        />
         <div class="pad-actions">
           <button type="button" class="pad-action" id="hcpClear">Clear</button>
           <button type="button" class="pad-action pad-done" id="hcpSave">Save</button>
@@ -265,6 +320,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=25"></script>
+    <script src="app.js?v=27"></script>
   </body>
 </html>

@@ -85,6 +85,7 @@
     teamsEnabled: false,
     teamRandom: "manual",
     teamsDrawn: false,
+    teamNames: { A: "Team A", B: "Team B" },
     updatedAt: 0,
   };
 
@@ -136,9 +137,22 @@
     mePlayerSelect: document.getElementById("mePlayerSelect"),
     teamsEnabled: document.getElementById("teamsEnabled"),
     teamsOptions: document.getElementById("teamsOptions"),
+    teamNameA: document.getElementById("teamNameA"),
+    teamNameB: document.getElementById("teamNameB"),
     shuffleTeamsBtn: document.getElementById("shuffleTeamsBtn"),
     settingsClose: document.getElementById("settingsClose"),
     settingsSave: document.getElementById("settingsSave"),
+    playerEditPad: document.getElementById("playerEditPad"),
+    playerEditTitle: document.getElementById("playerEditTitle"),
+    playerEditName: document.getElementById("playerEditName"),
+    playerEditHcp: document.getElementById("playerEditHcp"),
+    playerEditTeamBlock: document.getElementById("playerEditTeamBlock"),
+    playerEditTeamA: document.getElementById("playerEditTeamA"),
+    playerEditTeamB: document.getElementById("playerEditTeamB"),
+    playerEditQuotaBlock: document.getElementById("playerEditQuotaBlock"),
+    playerEditQuota: document.getElementById("playerEditQuota"),
+    playerEditCancel: document.getElementById("playerEditCancel"),
+    playerEditSave: document.getElementById("playerEditSave"),
     gameBackPlay: document.getElementById("gameBackPlay"),
     gameSettingsOpen: document.getElementById("gameSettingsOpen"),
     gameTitle: document.getElementById("gameTitle"),
@@ -167,10 +181,15 @@
     summaryNewRound: document.getElementById("summaryNewRound"),
   };
 
+  var editPlayerIndex = -1;
+  var editHcpPlus = false;
+  var editTeam = "A";
+
   function isMultiMode() {
     return (
       roundState.gameType === "track" ||
       roundState.gameType === "stroke" ||
+      roundState.gameType === "quota" ||
       roundState.gameType === "hammer"
     );
   }
@@ -180,7 +199,15 @@
   }
 
   function isCompetitive() {
-    return roundState.gameType === "stroke" || roundState.gameType === "hammer";
+    return (
+      roundState.gameType === "stroke" ||
+      roundState.gameType === "quota" ||
+      roundState.gameType === "hammer"
+    );
+  }
+
+  function isQuota() {
+    return roundState.gameType === "quota";
   }
 
   function uid() {
@@ -192,13 +219,47 @@
     for (var i = 0; i < count; i++) {
       list.push({
         id: "p" + (i + 1),
-        name: i === 0 ? "Me" : "Player " + (i + 1),
+        name: "Player " + (i + 1),
         handicap18: null,
         handicapPlus: false,
         team: i % 2 === 0 ? "A" : "B",
+        quota: 18,
       });
     }
     return list;
+  }
+
+  function teamDisplayName(key) {
+    var names = roundState.teamNames || {};
+    if (key === "B") return names.B || "Team B";
+    return names.A || "Team A";
+  }
+
+  function draftTeamDisplayName(key) {
+    if (key === "B") return (els.teamNameB && els.teamNameB.value.trim()) || "Team B";
+    return (els.teamNameA && els.teamNameA.value.trim()) || "Team A";
+  }
+
+  function holePoints(player, gross, hole) {
+    if (gross == null) return null;
+    var used = playerHcp(player) ? netScoreFor(player, gross, hole) : gross;
+    var diff = used - hole.par;
+    if (diff <= -2) return 4;
+    if (diff === -1) return 3;
+    if (diff === 0) return 2;
+    if (diff === 1) return 1;
+    return 0;
+  }
+
+  function playerQuotaTotal(player) {
+    var pts = 0;
+    if (!course) return 0;
+    course.holes.forEach(function (h) {
+      var sc = getPlayerScore(player.id, h.number);
+      var p = holePoints(player, sc, h);
+      if (p != null) pts += p;
+    });
+    return pts;
   }
 
   function shuffleArray(arr) {
@@ -221,8 +282,10 @@
     return players;
   }
 
-  function teamLabel(team) {
-    return team === "B" ? "Team B" : "Team A";
+  function normalizePlayerName(name, index) {
+    var n = (name || "").trim();
+    if (!n || /^me$/i.test(n)) return "Player " + (index + 1);
+    return n;
   }
 
   function loadRoundState() {
@@ -231,12 +294,27 @@
       if (!raw || typeof raw !== "object") return;
       roundState.gameType = raw.gameType || "none";
       roundState.mePlayerId = raw.mePlayerId || "p1";
-      roundState.players = Array.isArray(raw.players) ? raw.players : [];
+      roundState.players = Array.isArray(raw.players)
+        ? raw.players.map(function (p, i) {
+            return {
+              id: p.id || uid(),
+              name: normalizePlayerName(p.name, i),
+              handicap18: p.handicap18 != null ? p.handicap18 : null,
+              handicapPlus: !!p.handicapPlus,
+              team: p.team === "B" ? "B" : "A",
+              quota: p.quota != null ? p.quota : 18,
+            };
+          })
+        : [];
       roundState.scores = raw.scores || {};
       roundState.hammers = raw.hammers || {};
       roundState.teamsEnabled = !!raw.teamsEnabled;
       roundState.teamRandom = raw.teamRandom || "manual";
       roundState.teamsDrawn = !!raw.teamsDrawn;
+      roundState.teamNames = {
+        A: (raw.teamNames && raw.teamNames.A) || "Team A",
+        B: (raw.teamNames && raw.teamNames.B) || "Team B",
+      };
       roundState.updatedAt = raw.updatedAt || 0;
       if (typeof raw.holeIndex === "number") holeIndex = raw.holeIndex;
     } catch (e) {}
@@ -254,6 +332,7 @@
         teamsEnabled: roundState.teamsEnabled,
         teamRandom: roundState.teamRandom,
         teamsDrawn: roundState.teamsDrawn,
+        teamNames: roundState.teamNames || { A: "Team A", B: "Team B" },
         holeIndex: holeIndex,
         updatedAt: Date.now(),
         tee: selectedTee,
@@ -646,6 +725,8 @@
     if (roundState.gameType === "hammer") els.gameTitle.textContent = "Hammer";
     else if (roundState.gameType === "stroke")
       els.gameTitle.textContent = "Stroke Play";
+    else if (roundState.gameType === "quota")
+      els.gameTitle.textContent = "Quota Points";
     else if (roundState.gameType === "track")
       els.gameTitle.textContent = "Track Scores";
     else els.gameTitle.textContent = "Scorecard";
@@ -681,7 +762,13 @@
     });
     els.gameTeamsLabel.hidden = false;
     els.gameTeamsLabel.textContent =
-      "A: " + (a.join(", ") || "—") + " · B: " + (b.join(", ") || "—");
+      teamDisplayName("A") +
+      ": " +
+      (a.join(", ") || "—") +
+      " · " +
+      teamDisplayName("B") +
+      ": " +
+      (b.join(", ") || "—");
   }
 
   function setPagerPage(page) {
@@ -746,51 +833,22 @@
   function renderPlayersEditor() {
     els.playersEditor.innerHTML = "";
     draftPlayers.forEach(function (p, index) {
-      var row = document.createElement("div");
-      row.className = "player-edit-row";
-      var minusActive = !p.handicapPlus ? " is-active" : "";
-      var plusActive = p.handicapPlus ? " is-active" : "";
-      var teamA = !p.team || p.team === "A" ? " is-active" : "";
-      var teamB = p.team === "B" ? " is-active" : "";
-      var teamBlock = draftTeamsEnabled
-        ? '<div class="hcp-sign player-inline-sign" role="group" aria-label="Team">' +
-          '<button type="button" class="hcp-sign-btn' +
-          teamA +
-          '" data-pi="' +
-          index +
-          '" data-player-team="A">A</button>' +
-          '<button type="button" class="hcp-sign-btn' +
-          teamB +
-          '" data-pi="' +
-          index +
-          '" data-player-team="B">B</button>' +
-          "</div>"
-        : "";
-      row.innerHTML =
-        '<input class="hcp-input player-name-input" data-pi="' +
-        index +
-        '" type="text" maxlength="16" value="' +
-        (p.name || "").replace(/"/g, "&quot;") +
-        '" placeholder="Name" />' +
-        '<div class="hcp-sign player-inline-sign" role="group" aria-label="Handicap type">' +
-        '<button type="button" class="hcp-sign-btn' +
-        minusActive +
-        '" data-pi="' +
-        index +
-        '" data-player-hcp-sign="minus">−</button>' +
-        '<button type="button" class="hcp-sign-btn' +
-        plusActive +
-        '" data-pi="' +
-        index +
-        '" data-player-hcp-sign="plus">+</button>' +
-        "</div>" +
-        '<input class="hcp-input player-hcp-input" data-pi="' +
-        index +
-        '" type="number" inputmode="numeric" min="0" max="54" placeholder="HCP" value="' +
-        (p.handicap18 != null ? p.handicap18 : "") +
-        '" />' +
-        teamBlock;
-      els.playersEditor.appendChild(row);
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "player-list-btn";
+      btn.setAttribute("data-edit-player", String(index));
+      var bits = [p.name || "Player " + (index + 1)];
+      if (p.handicap18 != null) {
+        bits.push((p.handicapPlus ? "+" : "−") + p.handicap18);
+      }
+      if (draftTeamsEnabled) {
+        bits.push(draftTeamDisplayName(p.team === "B" ? "B" : "A"));
+      }
+      if (els.gameTypeSelect.value === "quota") {
+        bits.push("Q" + (p.quota != null ? p.quota : 18));
+      }
+      btn.textContent = bits.join(" · ");
+      els.playersEditor.appendChild(btn);
     });
     els.mePlayerSelect.innerHTML = "";
     draftPlayers.forEach(function (p) {
@@ -802,36 +860,55 @@
     });
   }
 
-  function readDraftPlayersFromDom() {
-    draftPlayers.forEach(function (p, index) {
-      var nameEl = els.playersEditor.querySelector(
-        '.player-name-input[data-pi="' + index + '"]'
+  function openPlayerEdit(index) {
+    editPlayerIndex = index;
+    var p = draftPlayers[index];
+    if (!p) return;
+    els.playerEditTitle.textContent = p.name || "Player " + (index + 1);
+    els.playerEditName.value = p.name || "";
+    editHcpPlus = !!p.handicapPlus;
+    els.playerEditHcp.value = p.handicap18 != null ? String(p.handicap18) : "";
+    document.querySelectorAll("[data-edit-hcp-sign]").forEach(function (btn) {
+      btn.classList.toggle(
+        "is-active",
+        btn.getAttribute("data-edit-hcp-sign") === (editHcpPlus ? "plus" : "minus")
       );
-      var hcpEl = els.playersEditor.querySelector(
-        '.player-hcp-input[data-pi="' + index + '"]'
-      );
-      var plusBtn = els.playersEditor.querySelector(
-        '.hcp-sign-btn.is-active[data-pi="' +
-          index +
-          '"][data-player-hcp-sign="plus"]'
-      );
-      var teamB = els.playersEditor.querySelector(
-        '.hcp-sign-btn.is-active[data-pi="' +
-          index +
-          '"][data-player-team="B"]'
-      );
-      if (nameEl) p.name = nameEl.value.trim() || "Player " + (index + 1);
-      p.handicapPlus = !!plusBtn;
-      if (draftTeamsEnabled) p.team = teamB ? "B" : "A";
-      if (hcpEl) {
-        var v = parseInt(hcpEl.value, 10);
-        p.handicap18 =
-          hcpEl.value.trim() === "" || isNaN(v)
-            ? null
-            : Math.max(0, Math.min(54, v));
-      }
     });
+    editTeam = p.team === "B" ? "B" : "A";
+    els.playerEditTeamBlock.hidden = !draftTeamsEnabled;
+    els.playerEditTeamA.textContent = draftTeamDisplayName("A");
+    els.playerEditTeamB.textContent = draftTeamDisplayName("B");
+    els.playerEditTeamA.classList.toggle("is-active", editTeam === "A");
+    els.playerEditTeamB.classList.toggle("is-active", editTeam === "B");
+    els.playerEditQuotaBlock.hidden = els.gameTypeSelect.value !== "quota";
+    els.playerEditQuota.value = String(p.quota != null ? p.quota : 18);
+    els.playerEditPad.hidden = false;
   }
+
+  function closePlayerEdit() {
+    els.playerEditPad.hidden = true;
+    editPlayerIndex = -1;
+  }
+
+  function savePlayerEdit() {
+    if (editPlayerIndex < 0 || !draftPlayers[editPlayerIndex]) return;
+    var p = draftPlayers[editPlayerIndex];
+    var name = els.playerEditName.value.trim();
+    p.name = name || "Player " + (editPlayerIndex + 1);
+    p.handicapPlus = editHcpPlus;
+    var v = parseInt(els.playerEditHcp.value, 10);
+    p.handicap18 =
+      els.playerEditHcp.value.trim() === "" || isNaN(v)
+        ? null
+        : Math.max(0, Math.min(54, v));
+    p.team = editTeam;
+    var q = parseInt(els.playerEditQuota.value, 10);
+    p.quota = isNaN(q) ? 18 : Math.max(0, Math.min(50, q));
+    closePlayerEdit();
+    renderPlayersEditor();
+  }
+
+  function readDraftPlayersFromDom() {}
 
   function updateTeamsSettingsUi() {
     draftTeamsEnabled = !!els.teamsEnabled.checked;
@@ -862,6 +939,7 @@
         handicap18: null,
         handicapPlus: false,
         team: draftPlayers.length % 2 === 0 ? "A" : "B",
+        quota: 18,
       });
     }
     draftPlayers = draftPlayers.slice(0, count);
@@ -873,19 +951,6 @@
     var t = els.gameTypeSelect.value;
     els.gameSettingsBlock.hidden = t === "none";
     updateSettingsSaveLabel();
-  }
-
-  function updateSyncSettingsUi() {
-    var on = !!els.syncEnabled.checked;
-    els.syncControls.hidden = !on;
-    if (!on && roundState.roomCode) {
-      if (window.GolfGpsSync) GolfGpsSync.disconnect();
-      roundState.roomCode = null;
-      roundState.syncEnabled = false;
-      persistRoundLocal();
-      updateRoomUi();
-      updatePagerMode();
-    }
   }
 
   function updateSettingsSaveLabel() {
@@ -902,13 +967,14 @@
     if (!roundState.players.length) {
       draftPlayers = defaultPlayers(2);
     } else {
-      draftPlayers = roundState.players.map(function (p) {
+      draftPlayers = roundState.players.map(function (p, i) {
         return {
           id: p.id,
-          name: p.name,
+          name: normalizePlayerName(p.name, i),
           handicap18: p.handicap18,
           handicapPlus: !!p.handicapPlus,
           team: p.team === "B" ? "B" : "A",
+          quota: p.quota != null ? p.quota : 18,
         };
       });
     }
@@ -918,6 +984,8 @@
     els.teamsEnabled.checked = !!roundState.teamsEnabled;
     draftTeamsEnabled = !!roundState.teamsEnabled;
     draftTeamRandom = roundState.teamRandom || "manual";
+    els.teamNameA.value = (roundState.teamNames && roundState.teamNames.A) || "Team A";
+    els.teamNameB.value = (roundState.teamNames && roundState.teamNames.B) || "Team B";
     updateTeamsSettingsUi();
     updateSettingsGameVisibility();
     updateSettingsSaveLabel();
@@ -954,12 +1022,17 @@
         handicap18: null,
         handicapPlus: false,
         team: draftPlayers.length % 2 === 0 ? "A" : "B",
+        quota: 18,
       });
     }
     draftPlayers = draftPlayers.slice(0, count);
 
     roundState.teamsEnabled = !!els.teamsEnabled.checked;
     roundState.teamRandom = draftTeamRandom || "manual";
+    roundState.teamNames = {
+      A: els.teamNameA.value.trim() || "Team A",
+      B: els.teamNameB.value.trim() || "Team B",
+    };
     if (roundState.teamsEnabled && roundState.teamRandom === "start") {
       assignRandomTeams(draftPlayers);
       roundState.teamsDrawn = true;
@@ -1146,7 +1219,11 @@
         "<th>" +
         (p.name || p.id) +
         (p.id === roundState.mePlayerId ? " *" : "") +
-        (showTeams ? '<span class="team-chip">' + (p.team === "B" ? "B" : "A") + "</span>" : "") +
+        (showTeams
+          ? '<span class="team-chip">' +
+            (p.team === "B" ? teamDisplayName("B") : teamDisplayName("A")) +
+            "</span>"
+          : "") +
         "</th>";
     });
     html += "</tr></thead><tbody>";
@@ -1161,7 +1238,13 @@
         "</th>";
       roundState.players.forEach(function (p) {
         var sc = getPlayerScore(p.id, h.number);
-        if (isCompetitive()) {
+        if (isQuota()) {
+          var pts = holePoints(p, sc, h);
+          html +=
+            "<td>" +
+            (sc == null ? "—" : sc + (pts != null ? " <span class='pts'>(" + pts + ")</span>" : "")) +
+            "</td>";
+        } else if (isCompetitive()) {
           html += "<td>" + formatPlayerScoreHtml(p, sc, h) + "</td>";
         } else {
           html += "<td>" + (sc != null ? sc : "—") + "</td>";
@@ -1171,6 +1254,21 @@
     });
     html += '<tr class="game-total-row"><th>Tot</th>';
     roundState.players.forEach(function (p) {
+      if (isQuota()) {
+        var pts = playerQuotaTotal(p);
+        var q = p.quota != null ? p.quota : 18;
+        var diff = pts - q;
+        html +=
+          "<td>" +
+          pts +
+          "/" +
+          q +
+          " <span class='pts'>(" +
+          (diff >= 0 ? "+" : "") +
+          diff +
+          ")</span></td>";
+        return;
+      }
       var tot = 0;
       var net = 0;
       var n = 0;
@@ -1188,7 +1286,7 @@
       else html += "<td>" + tot + "</td>";
     });
     html += "</tr>";
-    if (showTeams && isCompetitive()) {
+    if (showTeams && isCompetitive() && !isQuota()) {
       html += '<tr class="game-total-row"><th>Team</th>';
       var teamTot = { A: 0, B: 0 };
       var teamN = { A: 0, B: 0 };
@@ -1197,7 +1295,8 @@
         course.holes.forEach(function (h) {
           var sc = getPlayerScore(p.id, h.number);
           if (sc != null) {
-            teamTot[t] += isCompetitive() && playerHcp(p) ? netScoreFor(p, sc, h) : sc;
+            teamTot[t] +=
+              isCompetitive() && playerHcp(p) ? netScoreFor(p, sc, h) : sc;
             teamN[t] += 1;
           }
         });
@@ -1206,7 +1305,7 @@
         var t = p.team === "B" ? "B" : "A";
         html +=
           "<td>" +
-          (teamN[t] ? teamLabel(t) + " " + teamTot[t] : "—") +
+          (teamN[t] ? teamDisplayName(t) + " " + teamTot[t] : "—") +
           "</td>";
       });
       html += "</tr>";
@@ -1667,26 +1766,6 @@
     );
   }
 
-  function reconnectRoomIfNeeded() {
-    if (
-      !roundState.syncEnabled ||
-      !roundState.roomCode ||
-      !window.GolfGpsSync ||
-      !GolfGpsSync.isConfigured()
-    ) {
-      return;
-    }
-    GolfGpsSync.joinRoom(roundState.roomCode)
-      .then(function (data) {
-        applyRemoteRound(data);
-        GolfGpsSync.subscribe(applyRemoteRound);
-      })
-      .catch(function () {
-        roundState.roomCode = null;
-        persistRoundLocal();
-      });
-  }
-
   els.prevHole.addEventListener("click", function () {
     bumpActivity();
     cycleHole(-1);
@@ -1809,7 +1888,10 @@
     saveSettingsFromPad();
     haptic(12);
   });
-  els.gameTypeSelect.addEventListener("change", updateSettingsGameVisibility);
+  els.gameTypeSelect.addEventListener("change", function () {
+    updateSettingsGameVisibility();
+    renderPlayersEditor();
+  });
   els.playerCountDec.addEventListener("click", function () {
     var n = clampPlayerCount((parseInt(els.playerCountInput.value, 10) || 2) - 1);
     resizeDraftPlayers(n);
@@ -1824,44 +1906,57 @@
     resizeDraftPlayers(parseInt(els.playerCountInput.value, 10) || 2);
   });
   els.playersEditor.addEventListener("click", function (event) {
-    var btn = event.target.closest("[data-player-hcp-sign], [data-player-team]");
+    var btn = event.target.closest("[data-edit-player]");
     if (!btn) return;
-    var index = parseInt(btn.getAttribute("data-pi"), 10);
-    if (isNaN(index) || !draftPlayers[index]) return;
-    if (btn.hasAttribute("data-player-hcp-sign")) {
-      var plus = btn.getAttribute("data-player-hcp-sign") === "plus";
-      draftPlayers[index].handicapPlus = plus;
-      els.playersEditor
-        .querySelectorAll('.hcp-sign-btn[data-pi="' + index + '"][data-player-hcp-sign]')
-        .forEach(function (el) {
-          el.classList.toggle(
-            "is-active",
-            el.getAttribute("data-player-hcp-sign") === (plus ? "plus" : "minus")
-          );
-        });
-    } else {
-      var team = btn.getAttribute("data-player-team");
-      draftPlayers[index].team = team;
-      els.playersEditor
-        .querySelectorAll('.hcp-sign-btn[data-pi="' + index + '"][data-player-team]')
-        .forEach(function (el) {
-          el.classList.toggle(
-            "is-active",
-            el.getAttribute("data-player-team") === team
-          );
-        });
-    }
+    var index = parseInt(btn.getAttribute("data-edit-player"), 10);
+    if (isNaN(index)) return;
+    openPlayerEdit(index);
     haptic(6);
+  });
+  els.playerEditCancel.addEventListener("click", closePlayerEdit);
+  els.playerEditSave.addEventListener("click", function () {
+    savePlayerEdit();
+    haptic(10);
+  });
+  els.playerEditPad.addEventListener("click", function (event) {
+    if (event.target === els.playerEditPad) closePlayerEdit();
+  });
+  document.querySelectorAll("[data-edit-hcp-sign]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      editHcpPlus = btn.getAttribute("data-edit-hcp-sign") === "plus";
+      document.querySelectorAll("[data-edit-hcp-sign]").forEach(function (el) {
+        el.classList.toggle(
+          "is-active",
+          el.getAttribute("data-edit-hcp-sign") === (editHcpPlus ? "plus" : "minus")
+        );
+      });
+      haptic(6);
+    });
+  });
+  document.querySelectorAll("[data-edit-team]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      editTeam = btn.getAttribute("data-edit-team");
+      els.playerEditTeamA.classList.toggle("is-active", editTeam === "A");
+      els.playerEditTeamB.classList.toggle("is-active", editTeam === "B");
+      haptic(6);
+    });
   });
 
   els.teamsEnabled.addEventListener("change", updateTeamsSettingsUi);
-  els.teamRandomSelect.addEventListener("change", updateTeamsSettingsUi);
-  els.syncEnabled.addEventListener("change", function () {
-    updateSyncSettingsUi();
-    haptic(6);
+  els.teamNameA.addEventListener("input", function () {
+    if (draftTeamsEnabled) renderPlayersEditor();
+  });
+  els.teamNameB.addEventListener("input", function () {
+    if (draftTeamsEnabled) renderPlayersEditor();
+  });
+  document.querySelectorAll("[data-team-random]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      draftTeamRandom = btn.getAttribute("data-team-random");
+      updateTeamsSettingsUi();
+      haptic(6);
+    });
   });
   els.shuffleTeamsBtn.addEventListener("click", function () {
-    readDraftPlayersFromDom();
     assignRandomTeams(draftPlayers);
     renderPlayersEditor();
     haptic(10);
@@ -1874,71 +1969,6 @@
     updatePagerMode();
     renderGameBoard();
     haptic(16);
-  });
-
-  els.roomCreate.addEventListener("click", function () {
-    if (!window.GolfGpsSync || !GolfGpsSync.isConfigured()) {
-      window.alert("Add Firebase config in firebase-config.js (see SYNC.md).");
-      return;
-    }
-    if (els.gameTypeSelect.value === "none") {
-      window.alert("Pick Track scores, Stroke play, or Hammer first.");
-      return;
-    }
-    readDraftPlayersFromDom();
-    saveSettingsFromPad();
-    if (!inGameMode()) return;
-    GolfGpsSync.createRoom(roundPayload())
-      .then(function (code) {
-        roundState.roomCode = code;
-        roundState.syncEnabled = true;
-        els.syncEnabled.checked = true;
-        updateSyncSettingsUi();
-        persistRoundLocal();
-        GolfGpsSync.subscribe(applyRemoteRound);
-        updateRoomUi();
-        updatePagerMode();
-        openSettingsPad();
-        haptic(14);
-      })
-      .catch(function (err) {
-        window.alert(err.message || "Could not create room");
-      });
-  });
-
-  els.roomJoin.addEventListener("click", function () {
-    if (!window.GolfGpsSync || !GolfGpsSync.isConfigured()) {
-      window.alert("Add Firebase config in firebase-config.js (see SYNC.md).");
-      return;
-    }
-    var code = els.roomJoinInput.value;
-    GolfGpsSync.joinRoom(code)
-      .then(function (data) {
-        roundState.roomCode = data.roomCode || String(code).toUpperCase();
-        roundState.syncEnabled = true;
-        applyRemoteRound(data);
-        if (!roundState.mePlayerId && roundState.players[0]) {
-          roundState.mePlayerId = roundState.players[0].id;
-        }
-        GolfGpsSync.subscribe(applyRemoteRound);
-        updateRoomUi();
-        updatePagerMode();
-        closeSettingsPad();
-        setPagerPage(1);
-        haptic(14);
-      })
-      .catch(function (err) {
-        window.alert(err.message || "Could not join room");
-      });
-  });
-
-  els.roomLeave.addEventListener("click", function () {
-    if (window.GolfGpsSync) GolfGpsSync.disconnect();
-    roundState.roomCode = null;
-    persistRoundLocal();
-    updateRoomUi();
-    updatePagerMode();
-    haptic(8);
   });
 
   els.gameBackPlay.addEventListener("click", function () {
@@ -2043,7 +2073,6 @@
       renderGameBoard();
       startGpsWatch();
       bumpActivity();
-      reconnectRoomIfNeeded();
     })
     .catch(function () {
       setStatus("Could not load course JSON.");
