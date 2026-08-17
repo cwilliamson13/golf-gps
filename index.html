@@ -152,7 +152,7 @@
         <div id="gameSettingsBlock" hidden>
           <p class="settings-label">Players</p>
           <div class="player-count-row">
-            <button type="button" class="score-quick-btn" id="playerCountDec" aria-label="Fewer players">
+            <button type="button" class="player-count-btn" id="playerCountDec" aria-label="Fewer players">
               −
             </button>
             <input
@@ -165,7 +165,7 @@
               step="1"
               value="2"
             />
-            <button type="button" class="score-quick-btn" id="playerCountInc" aria-label="More players">
+            <button type="button" class="player-count-btn" id="playerCountInc" aria-label="More players">
               +
             </button>
           </div>
@@ -188,25 +188,31 @@
           </button>
 
           <p class="settings-label">Room sync</p>
-          <p class="hcp-hint" id="syncHint">
-            Optional: create a room code so other phones share scores (tiny data, GPS never syncs).
-          </p>
-          <p class="room-code-display" id="roomCodeDisplay" hidden></p>
-          <div class="pad-actions">
-            <button type="button" class="pad-action" id="roomCreate">Create room</button>
-            <button type="button" class="pad-action" id="roomLeave" hidden>Leave room</button>
-          </div>
-          <div class="room-join-row">
-            <input
-              id="roomJoinInput"
-              class="hcp-input room-join-input"
-              type="text"
-              maxlength="6"
-              placeholder="CODE"
-              autocomplete="off"
-              autocapitalize="characters"
-            />
-            <button type="button" class="pad-action pad-done" id="roomJoin">Join</button>
+          <label class="settings-check">
+            <input type="checkbox" id="syncEnabled" />
+            Sync across phones
+          </label>
+          <div id="syncControls" hidden>
+            <p class="hcp-hint" id="syncHint">
+              Create a room code so other phones share scores (tiny data, GPS never syncs).
+            </p>
+            <p class="room-code-display" id="roomCodeDisplay" hidden></p>
+            <div class="pad-actions">
+              <button type="button" class="pad-action" id="roomCreate">Create room</button>
+              <button type="button" class="pad-action" id="roomLeave" hidden>Leave room</button>
+            </div>
+            <div class="room-join-row">
+              <input
+                id="roomJoinInput"
+                class="hcp-input room-join-input"
+                type="text"
+                maxlength="6"
+                placeholder="CODE"
+                autocomplete="off"
+                autocapitalize="characters"
+              />
+              <button type="button" class="pad-action pad-done" id="roomJoin">Join</button>
+            </div>
           </div>
         </div>
 
