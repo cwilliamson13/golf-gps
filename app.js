@@ -51,7 +51,6 @@
   );
 
   var SCORE_KEY = "golf-gps-scores-olde-salem-greens";
-  var COLLAPSE_KEY = "golf-gps-scorecard-collapsed";
   var TEE_KEY = "golf-gps-tee-olde-salem-greens";
   var HCP_KEY = "golf-gps-handicap-v2";
   var ROUND_KEY = "golf-gps-round-v1";
@@ -67,7 +66,6 @@
   var scores = {};
   var padDigits = "";
   var padReplaceOnType = false;
-  var scorecardCollapsed = localStorage.getItem(COLLAPSE_KEY) === "1";
   var gpsWatchId = null;
   var gpsPaused = false;
   var idleTimer = null;
@@ -75,6 +73,8 @@
   var pagerPage = 0;
   var draftPlayers = [];
   var multiDraft = {};
+  var draftTeamsEnabled = false;
+  var draftTeamRandom = "manual";
 
   var roundState = {
     gameType: "none",
@@ -83,6 +83,9 @@
     players: [],
     scores: {},
     hammers: {},
+    teamsEnabled: false,
+    teamRandom: "manual",
+    teamsDrawn: false,
     updatedAt: 0,
   };
 
@@ -105,10 +108,7 @@
     status: document.getElementById("status"),
     prevHole: document.getElementById("prevHole"),
     nextHole: document.getElementById("nextHole"),
-    scorecardSection: document.getElementById("scorecardSection"),
     scorecard: document.getElementById("scorecard"),
-    scorecardToggle: document.getElementById("scorecardToggle"),
-    scorecardChevron: document.getElementById("scorecardChevron"),
     clearRound: document.getElementById("clearRound"),
     openSummary: document.getElementById("openSummary"),
     roundTotal: document.getElementById("roundTotal"),
@@ -135,6 +135,9 @@
     playerCountInc: document.getElementById("playerCountInc"),
     playersEditor: document.getElementById("playersEditor"),
     mePlayerSelect: document.getElementById("mePlayerSelect"),
+    teamsEnabled: document.getElementById("teamsEnabled"),
+    teamRandomSelect: document.getElementById("teamRandomSelect"),
+    shuffleTeamsBtn: document.getElementById("shuffleTeamsBtn"),
     syncHint: document.getElementById("syncHint"),
     roomCodeDisplay: document.getElementById("roomCodeDisplay"),
     roomCreate: document.getElementById("roomCreate"),
@@ -149,8 +152,11 @@
     gameHoleLabel: document.getElementById("gameHoleLabel"),
     gameHammerStatus: document.getElementById("gameHammerStatus"),
     enterScoresBtn: document.getElementById("enterScoresBtn"),
+    gameActions: document.getElementById("gameActions"),
     gameHammerBtn: document.getElementById("gameHammerBtn"),
+    drawTeamsBtn: document.getElementById("drawTeamsBtn"),
     gameBoard: document.getElementById("gameBoard"),
+    gameTeamsLabel: document.getElementById("gameTeamsLabel"),
     gameRoomLabel: document.getElementById("gameRoomLabel"),
     multiScorePad: document.getElementById("multiScorePad"),
     multiPadTitle: document.getElementById("multiPadTitle"),
@@ -169,7 +175,19 @@
     summaryNewRound: document.getElementById("summaryNewRound"),
   };
 
+  function isMultiMode() {
+    return (
+      roundState.gameType === "track" ||
+      roundState.gameType === "stroke" ||
+      roundState.gameType === "hammer"
+    );
+  }
+
   function inGameMode() {
+    return isMultiMode();
+  }
+
+  function isCompetitive() {
     return roundState.gameType === "stroke" || roundState.gameType === "hammer";
   }
 
@@ -185,9 +203,34 @@
         name: i === 0 ? "Me" : "Player " + (i + 1),
         handicap18: null,
         handicapPlus: false,
+        team: i % 2 === 0 ? "A" : "B",
       });
     }
     return list;
+  }
+
+  function shuffleArray(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i];
+      a[i] = a[j];
+      a[j] = t;
+    }
+    return a;
+  }
+
+  function assignRandomTeams(players) {
+    var shuffled = shuffleArray(players);
+    var half = Math.ceil(shuffled.length / 2);
+    shuffled.forEach(function (p, i) {
+      p.team = i < half ? "A" : "B";
+    });
+    return players;
+  }
+
+  function teamLabel(team) {
+    return team === "B" ? "Team B" : "Team A";
   }
 
   function loadRoundState() {
@@ -200,6 +243,9 @@
       roundState.players = Array.isArray(raw.players) ? raw.players : [];
       roundState.scores = raw.scores || {};
       roundState.hammers = raw.hammers || {};
+      roundState.teamsEnabled = !!raw.teamsEnabled;
+      roundState.teamRandom = raw.teamRandom || "manual";
+      roundState.teamsDrawn = !!raw.teamsDrawn;
       roundState.updatedAt = raw.updatedAt || 0;
       if (typeof raw.holeIndex === "number") holeIndex = raw.holeIndex;
     } catch (e) {}
@@ -215,6 +261,9 @@
         players: roundState.players,
         scores: roundState.scores,
         hammers: roundState.hammers,
+        teamsEnabled: roundState.teamsEnabled,
+        teamRandom: roundState.teamRandom,
+        teamsDrawn: roundState.teamsDrawn,
         holeIndex: holeIndex,
         updatedAt: Date.now(),
         tee: selectedTee,
@@ -233,6 +282,9 @@
       players: roundState.players,
       scores: roundState.scores,
       hammers: roundState.hammers,
+      teamsEnabled: roundState.teamsEnabled,
+      teamRandom: roundState.teamRandom,
+      teamsDrawn: roundState.teamsDrawn,
       updatedAt: Date.now(),
     };
   }
@@ -256,6 +308,9 @@
     roundState.players = data.players || roundState.players;
     roundState.scores = data.scores || {};
     roundState.hammers = data.hammers || {};
+    roundState.teamsEnabled = !!data.teamsEnabled;
+    roundState.teamRandom = data.teamRandom || "manual";
+    roundState.teamsDrawn = !!data.teamsDrawn;
     if (data.mePlayerId) {
       /* keep local mePlayerId — each phone picks who they are */
     }
@@ -612,17 +667,14 @@
     els.status.textContent = text;
   }
 
-  function updateCollapseUi() {
-    els.scorecardSection.classList.toggle("is-collapsed", scorecardCollapsed);
-    els.scorecardChevron.textContent = scorecardCollapsed ? "▸" : "▾";
-  }
+  function updateCollapseUi() {}
 
   function updateTeeButton() {
     els.teeOpen.textContent = teeLabel(selectedTee);
   }
 
   function updateHcpButton() {
-    els.hcpOpen.hidden = inGameMode();
+    els.hcpOpen.hidden = isMultiMode();
     if (!hasHandicap()) {
       els.hcpOpen.textContent = "HCP —";
       return;
@@ -640,34 +692,72 @@
   }
 
   function updatePagerMode() {
-    var on = inGameMode();
-    els.gameView.hidden = !on;
-    els.pagerHint.hidden = !on;
-    els.enterScoresBtn.hidden = !on;
-    els.appPager.classList.toggle("has-game", on);
-    if (!on) {
-      pagerPage = 0;
-      setPagerPage(0);
-    }
-    els.gameHammerBtn.hidden = roundState.gameType !== "hammer";
-    var actions = els.gameHammerBtn.parentElement;
-    if (actions) actions.hidden = roundState.gameType !== "hammer";
-    els.gameTitle.textContent =
-      roundState.gameType === "hammer" ? "Hammer" : "Stroke play";
+    var multi = isMultiMode();
+    els.enterScoresBtn.hidden = !multi;
+    els.appPager.classList.add("has-game");
+    els.scorecard.hidden = multi;
+    els.gameBoard.hidden = !multi;
+    els.gameHoleLabel.hidden = false;
+    els.pagerHint.textContent = multi
+      ? "Swipe for scoreboard →"
+      : "Swipe for scorecard →";
+
+    if (roundState.gameType === "hammer") els.gameTitle.textContent = "Hammer";
+    else if (roundState.gameType === "stroke")
+      els.gameTitle.textContent = "Stroke play";
+    else if (roundState.gameType === "track")
+      els.gameTitle.textContent = "Scores";
+    else els.gameTitle.textContent = "Scorecard";
+
+    var showHammer = roundState.gameType === "hammer";
+    var showDraw =
+      multi &&
+      roundState.teamsEnabled &&
+      roundState.teamRandom === "end" &&
+      !roundState.teamsDrawn;
+    els.gameHammerBtn.hidden = !showHammer;
+    els.drawTeamsBtn.hidden = !showDraw;
+    els.gameActions.hidden = !(showHammer || showDraw);
+
     if (roundState.roomCode) {
       els.gameRoomLabel.hidden = false;
       els.gameRoomLabel.textContent = "Room " + roundState.roomCode;
     } else {
       els.gameRoomLabel.hidden = true;
     }
+    updateTeamsLabel();
+  }
+
+  function updateTeamsLabel() {
+    if (!els.gameTeamsLabel) return;
+    if (!isMultiMode() || !roundState.teamsEnabled) {
+      els.gameTeamsLabel.hidden = true;
+      return;
+    }
+    if (roundState.teamRandom === "end" && !roundState.teamsDrawn) {
+      els.gameTeamsLabel.hidden = false;
+      els.gameTeamsLabel.textContent = "Teams: random draw at end";
+      return;
+    }
+    var a = [];
+    var b = [];
+    roundState.players.forEach(function (p) {
+      if (p.team === "B") b.push(p.name || p.id);
+      else a.push(p.name || p.id);
+    });
+    els.gameTeamsLabel.hidden = false;
+    els.gameTeamsLabel.textContent =
+      "A: " + (a.join(", ") || "—") + " · B: " + (b.join(", ") || "—");
   }
 
   function setPagerPage(page) {
-    if (!inGameMode()) page = 0;
-    pagerPage = page;
-    els.pagerTrack.style.transform = "translateX(" + page * -50 + "%)";
-    els.appPager.classList.toggle("on-game", page === 1);
-    if (page === 1) renderGameBoard();
+    pagerPage = page ? 1 : 0;
+    els.pagerTrack.style.transform = "translateX(" + pagerPage * -50 + "%)";
+    els.appPager.classList.toggle("on-game", pagerPage === 1);
+    if (pagerPage === 1) {
+      if (isMultiMode()) renderGameBoard();
+      else renderScorecard();
+    }
   }
 
   function openHcpPad() {
@@ -726,12 +816,29 @@
       row.className = "player-edit-row";
       var minusActive = !p.handicapPlus ? " is-active" : "";
       var plusActive = p.handicapPlus ? " is-active" : "";
+      var teamA = (!p.team || p.team === "A" ? " is-active" : "");
+      var teamB = p.team === "B" ? " is-active" : "";
+      var teamBlock = draftTeamsEnabled
+        ? '<div class="hcp-sign player-team-row" role="group" aria-label="Team">' +
+          '<button type="button" class="hcp-sign-btn' +
+          teamA +
+          '" data-pi="' +
+          index +
+          '" data-player-team="A">Team A</button>' +
+          '<button type="button" class="hcp-sign-btn' +
+          teamB +
+          '" data-pi="' +
+          index +
+          '" data-player-team="B">Team B</button>' +
+          "</div>"
+        : "";
       row.innerHTML =
         '<input class="hcp-input player-name-input" data-pi="' +
         index +
         '" type="text" maxlength="16" value="' +
         (p.name || "").replace(/"/g, "&quot;") +
         '" />' +
+        teamBlock +
         '<div class="hcp-sign player-hcp-sign-row" role="group" aria-label="Handicap type">' +
         '<button type="button" class="hcp-sign-btn' +
         minusActive +
@@ -774,8 +881,14 @@
           index +
           '"][data-player-hcp-sign="plus"]'
       );
+      var teamB = els.playersEditor.querySelector(
+        '.hcp-sign-btn.is-active[data-pi="' +
+          index +
+          '"][data-player-team="B"]'
+      );
       if (nameEl) p.name = nameEl.value.trim() || "Player " + (index + 1);
       p.handicapPlus = !!plusBtn;
+      if (draftTeamsEnabled) p.team = teamB ? "B" : "A";
       if (hcpEl) {
         var v = parseInt(hcpEl.value, 10);
         p.handicap18 =
@@ -784,6 +897,14 @@
             : Math.max(0, Math.min(54, v));
       }
     });
+  }
+
+  function updateTeamsSettingsUi() {
+    draftTeamsEnabled = !!els.teamsEnabled.checked;
+    els.teamRandomSelect.disabled = !draftTeamsEnabled;
+    els.shuffleTeamsBtn.hidden =
+      !draftTeamsEnabled || els.teamRandomSelect.value === "end";
+    renderPlayersEditor();
   }
 
   function clampPlayerCount(n) {
@@ -800,6 +921,7 @@
         name: "Player " + (draftPlayers.length + 1),
         handicap18: null,
         handicapPlus: false,
+        team: draftPlayers.length % 2 === 0 ? "A" : "B",
       });
     }
     draftPlayers = draftPlayers.slice(0, count);
@@ -823,13 +945,18 @@
           name: p.name,
           handicap18: p.handicap18,
           handicapPlus: !!p.handicapPlus,
+          team: p.team === "B" ? "B" : "A",
         };
       });
     }
     els.playerCountInput.value = String(
       clampPlayerCount(Math.max(2, draftPlayers.length))
     );
-    renderPlayersEditor();
+    els.teamsEnabled.checked = !!roundState.teamsEnabled;
+    els.teamRandomSelect.value = roundState.teamRandom || "manual";
+    draftTeamsEnabled = !!roundState.teamsEnabled;
+    draftTeamRandom = els.teamRandomSelect.value;
+    updateTeamsSettingsUi();
     updateSettingsGameVisibility();
     updateRoomUi();
     if (window.GolfGpsSync && !GolfGpsSync.isConfigured()) {
@@ -864,6 +991,9 @@
       roundState.players = [];
       roundState.scores = {};
       roundState.hammers = {};
+      roundState.teamsEnabled = false;
+      roundState.teamRandom = "manual";
+      roundState.teamsDrawn = false;
       if (roundState.roomCode && window.GolfGpsSync) {
         GolfGpsSync.disconnect();
         roundState.roomCode = null;
@@ -883,11 +1013,25 @@
         name: "Player " + (draftPlayers.length + 1),
         handicap18: null,
         handicapPlus: false,
+        team: draftPlayers.length % 2 === 0 ? "A" : "B",
       });
     }
     draftPlayers = draftPlayers.slice(0, count);
 
-    var wasNone = !inGameMode();
+    roundState.teamsEnabled = !!els.teamsEnabled.checked;
+    roundState.teamRandom = els.teamRandomSelect.value || "manual";
+    if (roundState.teamsEnabled && roundState.teamRandom === "start") {
+      assignRandomTeams(draftPlayers);
+      roundState.teamsDrawn = true;
+    } else if (roundState.teamsEnabled && roundState.teamRandom === "end") {
+      roundState.teamsDrawn = false;
+    } else if (roundState.teamsEnabled) {
+      roundState.teamsDrawn = true;
+    } else {
+      roundState.teamsDrawn = false;
+    }
+
+    var wasNone = !isMultiMode();
     roundState.gameType = type;
     roundState.players = draftPlayers;
     roundState.mePlayerId = els.mePlayerSelect.value || draftPlayers[0].id;
@@ -1034,7 +1178,7 @@
   }
 
   function renderGameBoard() {
-    if (!course || !inGameMode()) return;
+    if (!course || !isMultiMode()) return;
     var hole = currentHole();
     els.gameHoleLabel.textContent =
       "Hole " + hole.number + " · Par " + hole.par;
@@ -1050,14 +1194,19 @@
     } else {
       els.gameHammerStatus.hidden = true;
     }
+    updateTeamsLabel();
 
-    var html =
-      '<table class="game-table"><thead><tr><th>Hole</th>';
+    var showTeams =
+      roundState.teamsEnabled &&
+      (roundState.teamRandom !== "end" || roundState.teamsDrawn);
+
+    var html = '<table class="game-table"><thead><tr><th>Hole</th>';
     roundState.players.forEach(function (p) {
       html +=
         "<th>" +
         (p.name || p.id) +
         (p.id === roundState.mePlayerId ? " *" : "") +
+        (showTeams ? '<span class="team-chip">' + (p.team === "B" ? "B" : "A") + "</span>" : "") +
         "</th>";
     });
     html += "</tr></thead><tbody>";
@@ -1072,7 +1221,11 @@
         "</th>";
       roundState.players.forEach(function (p) {
         var sc = getPlayerScore(p.id, h.number);
-        html += "<td>" + formatPlayerScoreHtml(p, sc, h) + "</td>";
+        if (isCompetitive()) {
+          html += "<td>" + formatPlayerScoreHtml(p, sc, h) + "</td>";
+        } else {
+          html += "<td>" + (sc != null ? sc : "—") + "</td>";
+        }
       });
       html += "</tr>";
     });
@@ -1090,10 +1243,35 @@
         }
       });
       if (!n) html += "<td>—</td>";
-      else if (playerHcp(p)) html += "<td>" + tot + " / " + net + "</td>";
+      else if (isCompetitive() && playerHcp(p))
+        html += "<td>" + tot + " / " + net + "</td>";
       else html += "<td>" + tot + "</td>";
     });
-    html += "</tr></tbody></table>";
+    html += "</tr>";
+    if (showTeams && isCompetitive()) {
+      html += '<tr class="game-total-row"><th>Team</th>';
+      var teamTot = { A: 0, B: 0 };
+      var teamN = { A: 0, B: 0 };
+      roundState.players.forEach(function (p) {
+        var t = p.team === "B" ? "B" : "A";
+        course.holes.forEach(function (h) {
+          var sc = getPlayerScore(p.id, h.number);
+          if (sc != null) {
+            teamTot[t] += isCompetitive() && playerHcp(p) ? netScoreFor(p, sc, h) : sc;
+            teamN[t] += 1;
+          }
+        });
+      });
+      roundState.players.forEach(function (p) {
+        var t = p.team === "B" ? "B" : "A";
+        html +=
+          "<td>" +
+          (teamN[t] ? teamLabel(t) + " " + teamTot[t] : "—") +
+          "</td>";
+      });
+      html += "</tr>";
+    }
+    html += "</tbody></table>";
     els.gameBoard.innerHTML = html;
   }
 
@@ -1204,9 +1382,12 @@
     updateTeeButton();
     updateHcpButton();
     updateDistances();
-    updateCollapseUi();
-    renderScorecard();
-    if (inGameMode() && pagerPage === 1) renderGameBoard();
+    if (isMultiMode()) {
+      renderTotals();
+      if (pagerPage === 1) renderGameBoard();
+    } else {
+      renderScorecard();
+    }
   }
 
   function applyScore(value) {
@@ -1522,7 +1703,7 @@
     els.appPager.addEventListener(
       "touchstart",
       function (e) {
-        if (!inGameMode() || e.touches.length !== 1) return;
+        if (e.touches.length !== 1) return;
         if (e.target.closest(".pad, button, input, select, a")) return;
         tracking = true;
         startX = e.touches[0].clientX;
@@ -1578,11 +1759,6 @@
       bumpActivity();
       quickScore(btn.getAttribute("data-score-action"));
     });
-  });
-  els.scorecardToggle.addEventListener("click", function () {
-    scorecardCollapsed = !scorecardCollapsed;
-    localStorage.setItem(COLLAPSE_KEY, scorecardCollapsed ? "1" : "0");
-    updateCollapseUi();
   });
   els.clearRound.addEventListener("click", function () {
     if (!window.confirm("Clear all scores for this round?")) return;
@@ -1707,21 +1883,52 @@
     resizeDraftPlayers(parseInt(els.playerCountInput.value, 10) || 2);
   });
   els.playersEditor.addEventListener("click", function (event) {
-    var btn = event.target.closest("[data-player-hcp-sign]");
+    var btn = event.target.closest("[data-player-hcp-sign], [data-player-team]");
     if (!btn) return;
     var index = parseInt(btn.getAttribute("data-pi"), 10);
-    var plus = btn.getAttribute("data-player-hcp-sign") === "plus";
     if (isNaN(index) || !draftPlayers[index]) return;
-    draftPlayers[index].handicapPlus = plus;
-    els.playersEditor
-      .querySelectorAll('.hcp-sign-btn[data-pi="' + index + '"]')
-      .forEach(function (el) {
-        el.classList.toggle(
-          "is-active",
-          el.getAttribute("data-player-hcp-sign") === (plus ? "plus" : "minus")
-        );
-      });
+    if (btn.hasAttribute("data-player-hcp-sign")) {
+      var plus = btn.getAttribute("data-player-hcp-sign") === "plus";
+      draftPlayers[index].handicapPlus = plus;
+      els.playersEditor
+        .querySelectorAll('.hcp-sign-btn[data-pi="' + index + '"][data-player-hcp-sign]')
+        .forEach(function (el) {
+          el.classList.toggle(
+            "is-active",
+            el.getAttribute("data-player-hcp-sign") === (plus ? "plus" : "minus")
+          );
+        });
+    } else {
+      var team = btn.getAttribute("data-player-team");
+      draftPlayers[index].team = team;
+      els.playersEditor
+        .querySelectorAll('.hcp-sign-btn[data-pi="' + index + '"][data-player-team]')
+        .forEach(function (el) {
+          el.classList.toggle(
+            "is-active",
+            el.getAttribute("data-player-team") === team
+          );
+        });
+    }
     haptic(6);
+  });
+
+  els.teamsEnabled.addEventListener("change", updateTeamsSettingsUi);
+  els.teamRandomSelect.addEventListener("change", updateTeamsSettingsUi);
+  els.shuffleTeamsBtn.addEventListener("click", function () {
+    readDraftPlayersFromDom();
+    assignRandomTeams(draftPlayers);
+    renderPlayersEditor();
+    haptic(10);
+  });
+
+  els.drawTeamsBtn.addEventListener("click", function () {
+    assignRandomTeams(roundState.players);
+    roundState.teamsDrawn = true;
+    saveRoundAndSync();
+    updatePagerMode();
+    renderGameBoard();
+    haptic(16);
   });
 
   els.roomCreate.addEventListener("click", function () {
@@ -1730,7 +1937,7 @@
       return;
     }
     if (els.gameTypeSelect.value === "none") {
-      window.alert("Pick Stroke play or Hammer first.");
+      window.alert("Pick Track scores, Stroke play, or Hammer first.");
       return;
     }
     readDraftPlayersFromDom();
@@ -1823,7 +2030,7 @@
   });
 
   els.pagerHint.addEventListener("click", function () {
-    if (inGameMode()) setPagerPage(1);
+    setPagerPage(1);
   });
 
   document.addEventListener("visibilitychange", function () {

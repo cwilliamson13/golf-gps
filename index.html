@@ -17,7 +17,7 @@
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
     <link rel="icon" href="icons/favicon.svg" type="image/svg+xml" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css?v=21" />
+    <link rel="stylesheet" href="styles.css?v=22" />
     <title>Golf GPS</title>
   </head>
   <body>
@@ -44,7 +44,6 @@
                 </button>
                 <p class="round-total" id="roundTotal">—</p>
                 <p class="to-par" id="toPar">E</p>
-                <p class="pager-hint" id="pagerHint" hidden>Swipe for game →</p>
               </div>
             </header>
 
@@ -82,36 +81,37 @@
             </div>
           </div>
 
-          <section class="scorecard" id="scorecardSection" aria-label="Scorecard">
+          <section class="scorecard play-footer" aria-label="Round actions">
             <div class="scorecard-bar">
-              <button type="button" class="scorecard-toggle" id="scorecardToggle">
-                <span>Scorecard</span>
-                <span id="scorecardChevron">▾</span>
-              </button>
+              <p class="pager-hint footer-hint" id="pagerHint">Swipe for scorecard →</p>
               <button type="button" class="summary-link" id="openSummary" hidden>
                 Summary
               </button>
               <button type="button" class="clear-round" id="clearRound">Clear round</button>
             </div>
-            <div class="scorecard-grid" id="scorecard"></div>
           </section>
         </main>
 
-        <section class="shell game-page pager-page" id="gameView" hidden>
+        <section class="shell game-page pager-page" id="gameView">
           <div class="game-inner">
             <div class="game-top">
               <button type="button" class="summary-back" id="gameBackPlay">← Play</button>
-              <p class="game-title" id="gameTitle">Game</p>
+              <p class="game-title" id="gameTitle">Scorecard</p>
               <button type="button" class="settings-open" id="gameSettingsOpen">Settings</button>
             </div>
             <p class="game-hole" id="gameHoleLabel">Hole 1</p>
             <p class="game-hammer-status" id="gameHammerStatus" hidden></p>
-            <div class="game-actions">
+            <div class="game-actions" id="gameActions" hidden>
               <button type="button" class="nav-btn game-hammer-btn" id="gameHammerBtn" hidden>
                 Hammer
               </button>
+              <button type="button" class="nav-btn" id="drawTeamsBtn" hidden>
+                Random team draw
+              </button>
             </div>
-            <div class="game-board" id="gameBoard"></div>
+            <div class="scorecard-grid solo-swipe-scorecard" id="scorecard"></div>
+            <div class="game-board" id="gameBoard" hidden></div>
+            <p class="game-teams" id="gameTeamsLabel" hidden></p>
             <p class="game-room" id="gameRoomLabel" hidden></p>
           </div>
         </section>
@@ -143,7 +143,8 @@
         <p class="pad-title">Round settings</p>
         <label class="settings-label" for="gameTypeSelect">Game</label>
         <select id="gameTypeSelect" class="settings-select">
-          <option value="none">No game (solo)</option>
+          <option value="none">Solo (just me)</option>
+          <option value="track">Track scores (no game)</option>
           <option value="stroke">Stroke play</option>
           <option value="hammer">Hammer</option>
         </select>
@@ -171,6 +172,20 @@
           <div id="playersEditor" class="players-editor"></div>
           <label class="settings-label" for="mePlayerSelect">This phone is</label>
           <select id="mePlayerSelect" class="settings-select"></select>
+
+          <p class="settings-label">Teams</p>
+          <label class="settings-check">
+            <input type="checkbox" id="teamsEnabled" />
+            Use teams
+          </label>
+          <select id="teamRandomSelect" class="settings-select" disabled>
+            <option value="manual">Assign manually</option>
+            <option value="start">Randomize at start</option>
+            <option value="end">Random draw at end</option>
+          </select>
+          <button type="button" class="pad-action" id="shuffleTeamsBtn" hidden>
+            Shuffle teams now
+          </button>
 
           <p class="settings-label">Room sync</p>
           <p class="hcp-hint" id="syncHint">
@@ -265,10 +280,10 @@
       </div>
     </div>
 
-    <script src="firebase-config.js?v=21"></script>
+    <script src="firebase-config.js?v=22"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
-    <script src="sync.js?v=21"></script>
-    <script src="app.js?v=21"></script>
+    <script src="sync.js?v=22"></script>
+    <script src="app.js?v=22"></script>
   </body>
 </html>

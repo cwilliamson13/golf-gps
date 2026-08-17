@@ -756,23 +756,71 @@ body {
 
 .pager-track {
   display: flex;
-  width: 100%;
+  width: 200%;
   transition: transform 0.28s ease;
   will-change: transform;
 }
 
-.app-pager.has-game .pager-track {
-  width: 200%;
-}
-
 .pager-page {
-  width: 100%;
+  width: 50%;
   flex-shrink: 0;
   min-width: 0;
 }
 
-.app-pager.has-game .pager-page {
-  width: 50%;
+.play-footer .scorecard-bar {
+  gap: 0.5rem;
+}
+
+.footer-hint {
+  flex: 1;
+  margin: 0;
+  text-align: left;
+}
+
+.solo-swipe-scorecard {
+  margin-top: 0.75rem;
+}
+
+.solo-swipe-scorecard[hidden],
+.game-board[hidden],
+.game-actions[hidden] {
+  display: none;
+}
+
+.team-chip {
+  display: inline-block;
+  margin-left: 0.25rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: 0.25rem;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.game-teams {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.settings-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.35rem 0 0.55rem;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+#shuffleTeamsBtn {
+  width: 100%;
+  margin-top: 0.45rem;
+}
+
+#shuffleTeamsBtn[hidden] {
+  display: none;
 }
 
 .settings-open {
@@ -814,10 +862,6 @@ body {
 
 .game-page[hidden] {
   display: none;
-}
-
-.app-pager.has-game .game-page[hidden] {
-  display: block;
 }
 
 .game-inner {
