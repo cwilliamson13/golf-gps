@@ -386,6 +386,33 @@
     return (n > 0 ? "+" : "") + n;
   }
 
+  function teamHolePointsSum(teamKey, hole) {
+    var tot = 0;
+    var any = false;
+    roundState.players.forEach(function (p) {
+      if ((p.team === "B" ? "B" : "A") !== teamKey) return;
+      var sc = getPlayerScore(p.id, hole.number);
+      var pts = holePoints(p, sc, hole);
+      if (pts == null) return;
+      any = true;
+      tot += pts;
+    });
+    return any ? tot : null;
+  }
+
+  function teamQuotaPointsTotal(teamKey) {
+    if (!course) return null;
+    var tot = 0;
+    var any = false;
+    course.holes.forEach(function (h) {
+      var hp = teamHolePointsSum(teamKey, h);
+      if (hp == null) return;
+      any = true;
+      tot += hp;
+    });
+    return any ? tot : null;
+  }
+
   function computeTeamMatchRuns() {
     var runA = 0;
     var runB = 0;
@@ -393,6 +420,30 @@
     var thruHole = 0;
     if (!course || !teamsVisible()) {
       return { runA: 0, runB: 0, played: 0, thruHole: 0 };
+    }
+    if (isQuota()) {
+      course.holes.forEach(function (h) {
+        var a = teamHolePointsSum("A", h);
+        var b = teamHolePointsSum("B", h);
+        if (a == null && b == null) return;
+        played += 1;
+        thruHole = h.number;
+        if (a != null) runA += a;
+        if (b != null) runB += b;
+      });
+      return { runA: runA, runB: runB, played: played, thruHole: thruHole };
+    }
+    if (roundState.gameType === "stroke") {
+      course.holes.forEach(function (h) {
+        var a = teamHoleScore("A", h);
+        var b = teamHoleScore("B", h);
+        if (a == null && b == null) return;
+        played += 1;
+        thruHole = h.number;
+        if (a != null) runA += a;
+        if (b != null) runB += b;
+      });
+      return { runA: runA, runB: runB, played: played, thruHole: thruHole };
     }
     course.holes.forEach(function (h) {
       var swing = holeTeamSwing(h);
@@ -405,12 +456,34 @@
     return { runA: runA, runB: runB, played: played, thruHole: thruHole };
   }
 
+  function formatTeamRunValue(n) {
+    if (n == null) return "—";
+    if (roundState.gameType === "hammer") return formatSignedPoints(n);
+    return String(n);
+  }
+
+  function holeTeamBoardPts(teamKey, hole) {
+    if (isQuota()) return teamHolePointsSum(teamKey, hole);
+    if (roundState.gameType === "stroke") return teamHoleScore(teamKey, hole);
+    var swing = holeTeamSwing(hole);
+    if (!swing.decided) return null;
+    return teamKey === "B" ? swing.B : swing.A;
+  }
+
   function teamMatchPoints(teamKey) {
     if (!teamsVisible()) return null;
+    if (isQuota()) {
+      var qTot = teamQuotaPointsTotal(teamKey);
+      if (qTot == null) return null;
+      return { text: String(qTot), value: qTot };
+    }
     var runs = computeTeamMatchRuns();
     if (!runs.played) return null;
     var val = teamKey === "B" ? runs.runB : runs.runA;
-    return { text: formatSignedPoints(val), value: val };
+    return {
+      text: formatTeamRunValue(val),
+      value: val,
+    };
   }
 
   function matchStatusSummary() {
@@ -419,6 +492,26 @@
     var bLabel = teamDisplayName("B");
     var runs = computeTeamMatchRuns();
     if (!runs.played) return aLabel + " vs " + bLabel;
+    if (isQuota()) {
+      if (runs.runA === runs.runB) return "AS Thru " + runs.thruHole;
+      if (runs.runA > runs.runB)
+        return (
+          aLabel + " +" + (runs.runA - runs.runB) + " Thru " + runs.thruHole
+        );
+      return (
+        bLabel + " +" + (runs.runB - runs.runA) + " Thru " + runs.thruHole
+      );
+    }
+    if (roundState.gameType === "stroke") {
+      if (runs.runA === runs.runB) return "AS Thru " + runs.thruHole;
+      if (runs.runA < runs.runB)
+        return (
+          aLabel + " +" + (runs.runB - runs.runA) + " Thru " + runs.thruHole
+        );
+      return (
+        bLabel + " +" + (runs.runA - runs.runB) + " Thru " + runs.thruHole
+      );
+    }
     if (runs.runA === 0) return "AS Thru " + runs.thruHole;
     if (runs.runA > 0)
       return aLabel + " +" + runs.runA + " Thru " + runs.thruHole;
@@ -564,8 +657,8 @@
   function holePoints(player, gross, hole) {
     if (gross == null) return null;
     var diff = gross - hole.par;
-    if (diff <= -2) return 4;
-    if (diff === -1) return 3;
+    if (diff <= -2) return 8;
+    if (diff === -1) return 4;
     if (diff === 0) return 2;
     if (diff === 1) return 1;
     return 0;
@@ -1794,17 +1887,28 @@
 
     function scoreCellHtml(p, h, winClass) {
       var sc = getPlayerScore(p.id, h.number);
-      var inner;
-      if (isQuota()) inner = sc == null ? "—" : String(sc);
-      else if (gameUsesHandicap() || isCompetitive())
-        inner = formatPlayerScoreHtml(p, sc, h);
-      else inner = sc != null ? String(sc) : "—";
       var cls = ("score-cell " + (winClass || "")).trim();
-      if (
-        /\bis-hole-win\b/.test(cls) ||
-        /\bis-win-group\b/.test(cls)
-      ) {
-        inner = '<span class="score-win-mark">' + inner + "</span>";
+      var isWin =
+        /\bis-hole-win\b/.test(cls) || /\bis-win-group\b/.test(cls);
+      var inner;
+      if (isQuota()) {
+        if (sc == null) inner = "—";
+        else {
+          var hp = holePoints(p, sc, h);
+          var scorePart = String(sc);
+          if (isWin)
+            scorePart = '<span class="score-win-mark">' + scorePart + "</span>";
+          inner =
+            scorePart +
+            (hp != null
+              ? '<span class="hole-pts">' + hp + "</span>"
+              : "");
+        }
+      } else {
+        if (gameUsesHandicap() || isCompetitive())
+          inner = formatPlayerScoreHtml(p, sc, h);
+        else inner = sc != null ? String(sc) : "—";
+        if (isWin) inner = '<span class="score-win-mark">' + inner + "</span>";
       }
       return (
         '<td class="' +
@@ -1865,7 +1969,11 @@
           gameUsesHandicap() && strokesOnHoleFor(p, hole) > 0
             ? ' <span class="stroke-mark">★</span>'
             : "";
-        out += "<th>" + (p.name || p.id) + headStar + "</th>";
+        out +=
+          '<th class="col-head"><span class="col-head-rot">' +
+          (p.name || p.id) +
+          headStar +
+          "</span></th>";
       });
       return out;
     }
@@ -1887,7 +1995,7 @@
         aLabel +
         '</span><span class="team-head-tally">' +
         (teamRuns && teamRuns.played
-          ? formatSignedPoints(teamRuns.runA)
+          ? formatTeamRunValue(teamRuns.runA)
           : "—") +
         "</span></th>";
       html +=
@@ -1897,26 +2005,28 @@
         bLabel +
         '</span><span class="team-head-tally">' +
         (teamRuns && teamRuns.played
-          ? formatSignedPoints(teamRuns.runB)
+          ? formatTeamRunValue(teamRuns.runB)
           : "—") +
         "</span></th></tr>";
       html += "<tr><th>#</th>";
       html += renderTeamPlayersHeader(teamA);
-      html += '<th class="pts-col">Pts</th>';
+      html +=
+        '<th class="pts-col col-head"><span class="col-head-rot">Pts</span></th>';
       teamB.forEach(function (p, i) {
         var headStar =
           gameUsesHandicap() && strokesOnHoleFor(p, hole) > 0
             ? ' <span class="stroke-mark">★</span>'
             : "";
         html +=
-          '<th class="' +
-          (i === 0 ? "team-sep" : "") +
-          '">' +
+          '<th class="col-head' +
+          (i === 0 ? " team-sep" : "") +
+          '"><span class="col-head-rot">' +
           (p.name || p.id) +
           headStar +
-          "</th>";
+          "</span></th>";
       });
-      html += '<th class="pts-col">Pts</th></tr>';
+      html +=
+        '<th class="pts-col col-head"><span class="col-head-rot">Pts</span></th></tr>';
     } else {
       html += "<tr><th>#</th>";
       players.forEach(function (p) {
@@ -1924,7 +2034,11 @@
           gameUsesHandicap() && strokesOnHoleFor(p, hole) > 0
             ? ' <span class="stroke-mark">★</span>'
             : "";
-        html += "<th>" + (p.name || p.id) + headStar + "</th>";
+        html +=
+          '<th class="col-head"><span class="col-head-rot">' +
+          (p.name || p.id) +
+          headStar +
+          "</span></th>";
       });
       html += "</tr>";
     }
@@ -1974,7 +2088,13 @@
         });
         html +=
           '<td class="pts-cell">' +
-          (swing && swing.decided ? formatSignedPoints(swing.A) : "·") +
+          (function () {
+            var v = holeTeamBoardPts("A", h);
+            if (v == null) return "·";
+            return roundState.gameType === "hammer"
+              ? formatSignedPoints(v)
+              : String(v);
+          })() +
           "</td>";
         teamB.forEach(function (p, i) {
           html += scoreCellHtml(
@@ -1985,7 +2105,13 @@
         });
         html +=
           '<td class="pts-cell">' +
-          (swing && swing.decided ? formatSignedPoints(swing.B) : "·") +
+          (function () {
+            var v = holeTeamBoardPts("B", h);
+            if (v == null) return "·";
+            return roundState.gameType === "hammer"
+              ? formatSignedPoints(v)
+              : String(v);
+          })() +
           "</td>";
       } else {
         var winnerIds = {};
@@ -2013,7 +2139,7 @@
       html +=
         '<td class="pts-cell team-match-score">' +
         (teamRuns && teamRuns.played
-          ? formatSignedPoints(teamRuns.runA)
+          ? formatTeamRunValue(teamRuns.runA)
           : "—") +
         "</td>";
       teamB.forEach(function (p, i) {
@@ -2022,7 +2148,7 @@
       html +=
         '<td class="pts-cell team-match-score">' +
         (teamRuns && teamRuns.played
-          ? formatSignedPoints(teamRuns.runB)
+          ? formatTeamRunValue(teamRuns.runB)
           : "—") +
         "</td>";
     } else {
@@ -2037,20 +2163,12 @@
     function playerTotalCell(p, extraClass) {
       var cls = (extraClass || "").trim();
       if (isQuota()) {
-        var pts = playerQuotaTotal(p);
-        var q = p.quota != null ? p.quota : 18;
-        var diff = pts - q;
+        var has = course.holes.some(function (h) {
+          return getPlayerScore(p.id, h.number) != null;
+        });
+        if (!has) return '<td class="' + cls + '">—</td>';
         return (
-          '<td class="' +
-          cls +
-          '">' +
-          pts +
-          "/" +
-          q +
-          ' <span class="pts">(' +
-          (diff >= 0 ? "+" : "") +
-          diff +
-          ")</span></td>"
+          '<td class="' + cls + '">' + playerQuotaTotal(p) + "</td>"
         );
       }
       var r = playerStrokeTotal(p);
@@ -2477,14 +2595,15 @@
     if (!course) return;
     scores = {};
     saveScores();
+    holeIndex = 0;
     if (isMultiMode()) {
       roundState.scores = {};
       roundState.players.forEach(function (p) {
         roundState.scores[p.id] = {};
       });
       roundState.hammers = {};
-      persistRoundLocal();
     }
+    persistRoundLocal();
     summaryShownForComplete = false;
     render();
     renderGameBoard();
