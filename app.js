@@ -827,6 +827,12 @@
     );
   }
 
+  function strokeStarMarks(count) {
+    var out = "";
+    for (var i = 0; i < count; i++) out += "★";
+    return out;
+  }
+
   function updateStrokeHint() {
     if (!els.strokeHint || !course) return;
     var hole = currentHole();
@@ -835,24 +841,46 @@
       return;
     }
     if (isMultiMode()) {
-      var names = [];
+      var entries = [];
       roundState.players.forEach(function (p) {
         var s = strokesOnHoleFor(p, hole);
-        if (s > 0) names.push((p.name || p.id) + (s > 1 ? " ×" + s : ""));
+        if (s > 0)
+          entries.push({
+            team: p.team === "B" ? "B" : "A",
+            label: (p.name || p.id) + strokeStarMarks(s),
+          });
       });
       els.strokeHint.hidden = false;
-      els.strokeHint.textContent = names.length
-        ? "Strokes: " + names.join(", ")
-        : "No strokes";
+      if (!entries.length) {
+        els.strokeHint.textContent = teamsVisible()
+          ? "Team Strokes: none"
+          : "Strokes: none";
+        return;
+      }
+      if (teamsVisible()) {
+        var byTeam = { A: [], B: [] };
+        entries.forEach(function (e) {
+          byTeam[e.team].push(e.label);
+        });
+        var parts = [];
+        if (byTeam.A.length) parts.push(byTeam.A.join("/"));
+        if (byTeam.B.length) parts.push(byTeam.B.join("/"));
+        els.strokeHint.textContent = "Team Strokes: " + parts.join(" · ");
+      } else {
+        els.strokeHint.textContent =
+          "Strokes: " +
+          entries
+            .map(function (e) {
+              return e.label;
+            })
+            .join(" · ");
+      }
       return;
     }
     if (hasHandicap() && strokesOnHole(hole) > 0) {
       els.strokeHint.hidden = false;
       els.strokeHint.textContent =
-        "You get " +
-        strokesOnHole(hole) +
-        " stroke" +
-        (strokesOnHole(hole) > 1 ? "s" : "");
+        "Strokes: " + strokeStarMarks(strokesOnHole(hole));
     } else {
       els.strokeHint.hidden = true;
     }
