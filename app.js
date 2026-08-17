@@ -478,14 +478,23 @@
   function commitPadScore() {
     if (!course) return;
     var hole = currentHole();
+    var hadScore = getScore(hole.number) != null;
+    var scored = false;
     if (!padDigits) setScore(hole.number, null);
     else {
       var value = parseInt(padDigits, 10);
-      if (!isNaN(value) && value >= 1 && value <= 15) setScore(hole.number, value);
+      if (!isNaN(value) && value >= 1 && value <= 15) {
+        setScore(hole.number, value);
+        scored = true;
+      }
     }
     closeScorePad();
     haptic(14);
-    pulseScore();
+    if (scored && !hadScore && holeIndex < course.holes.length - 1) {
+      holeIndex += 1;
+    } else {
+      pulseScore();
+    }
     render();
     if (!els.summaryView.hidden) openSummary();
   }
@@ -545,10 +554,15 @@
   function applyScore(value) {
     if (!course) return;
     var hole = currentHole();
+    var hadScore = getScore(hole.number) != null;
     if (value == null || value < 1) setScore(hole.number, null);
     else setScore(hole.number, Math.min(15, value));
     haptic(12);
-    pulseScore();
+    if (value != null && value >= 1 && !hadScore && holeIndex < course.holes.length - 1) {
+      holeIndex += 1;
+    } else {
+      pulseScore();
+    }
     render();
   }
 
