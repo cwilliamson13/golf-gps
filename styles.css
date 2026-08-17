@@ -787,10 +787,36 @@ body {
 }
 
 .game-teams {
-  margin: 0.75rem 0 0;
-  font-size: 0.85rem;
+  margin: 0.55rem 0 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.65rem;
+  font-size: 0.9rem;
   color: var(--muted);
   text-align: center;
+}
+
+.game-teams[hidden] {
+  display: none;
+}
+
+.team-vs-side {
+  color: var(--text);
+}
+
+.team-vs-side strong {
+  color: var(--accent);
+  font-size: 1.05rem;
+}
+
+.team-vs-mid {
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
 }
 
 .settings-check {
@@ -919,6 +945,41 @@ body {
   font-weight: 700;
   border-bottom: none;
   padding-top: 0.7rem;
+}
+
+.game-table.has-teams th.team-sep,
+.game-table.has-teams td.team-sep {
+  border-left: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  padding-left: 0.55rem;
+}
+
+.team-match-row th,
+.team-match-row td {
+  border-top: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-bottom: none;
+  padding-top: 0.85rem;
+  padding-bottom: 0.55rem;
+  vertical-align: top;
+}
+
+.team-match-cell {
+  text-align: center;
+}
+
+.team-match-names {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 0.2rem;
+}
+
+.team-match-score {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
 }
 
 .hammer-tag {

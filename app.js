@@ -134,7 +134,6 @@
     playerCountDec: document.getElementById("playerCountDec"),
     playerCountInc: document.getElementById("playerCountInc"),
     playersEditor: document.getElementById("playersEditor"),
-    mePlayerSelect: document.getElementById("mePlayerSelect"),
     teamsOptions: document.getElementById("teamsOptions"),
     teamNameA: document.getElementById("teamNameA"),
     teamNameB: document.getElementById("teamNameB"),
@@ -249,6 +248,79 @@
     return names.length ? names.join("/") : "—";
   }
 
+  function teamsVisible() {
+    return (
+      roundState.teamsEnabled &&
+      (roundState.teamRandom !== "end" || roundState.teamsDrawn)
+    );
+  }
+
+  function boardPlayers() {
+    if (!teamsVisible()) return roundState.players.slice();
+    var a = [];
+    var b = [];
+    roundState.players.forEach(function (p) {
+      if (p.team === "B") b.push(p);
+      else a.push(p);
+    });
+    return a.concat(b);
+  }
+
+  function teamColumnSep(player, index, list) {
+    if (!teamsVisible() || index === 0) return "";
+    var prev = list[index - 1];
+    var prevT = prev.team === "B" ? "B" : "A";
+    var curT = player.team === "B" ? "B" : "A";
+    return prevT !== curT ? " team-sep" : "";
+  }
+
+  function playerStrokeTotal(player) {
+    var tot = 0;
+    var net = 0;
+    var n = 0;
+    course.holes.forEach(function (h) {
+      var sc = getPlayerScore(player.id, h.number);
+      if (sc != null) {
+        tot += sc;
+        net += netScoreFor(player, sc, h);
+        n += 1;
+      }
+    });
+    return { tot: tot, net: net, n: n };
+  }
+
+  function teamCombinedScore(teamKey) {
+    var players = roundState.players.filter(function (p) {
+      return (p.team === "B" ? "B" : "A") === teamKey;
+    });
+    if (isQuota()) {
+      var pts = 0;
+      var quota = 0;
+      var any = false;
+      players.forEach(function (p) {
+        var has = course.holes.some(function (h) {
+          return getPlayerScore(p.id, h.number) != null;
+        });
+        if (!has) return;
+        any = true;
+        pts += playerQuotaTotal(p);
+        quota += p.quota != null ? p.quota : 18;
+      });
+      if (!any) return null;
+      return { text: pts + "/" + quota, value: pts - quota };
+    }
+    var tot = 0;
+    var n = 0;
+    players.forEach(function (p) {
+      var r = playerStrokeTotal(p);
+      if (!r.n) return;
+      tot += isCompetitive() && playerHcp(p) ? r.net : r.tot;
+      n += r.n;
+    });
+    if (!n) return null;
+    return { text: String(tot), value: tot };
+  }
+
   function formatPlayerHcpLabel(player) {
     if (player.handicap18 == null) return "--";
     return (player.handicapPlus ? "+" : "−") + player.handicap18 + " hcp";
@@ -307,7 +379,10 @@
       var raw = JSON.parse(localStorage.getItem(ROUND_KEY) || "null");
       if (!raw || typeof raw !== "object") return;
       roundState.gameType = raw.gameType || "none";
-      roundState.mePlayerId = raw.mePlayerId || "p1";
+      roundState.mePlayerId =
+        (roundState.players[0] && roundState.players[0].id) ||
+        raw.mePlayerId ||
+        "p1";
       roundState.players = Array.isArray(raw.players)
         ? raw.players.map(function (p, i) {
             return {
@@ -801,11 +876,27 @@
       els.gameTeamsLabel.textContent = "Teams: random draw at end";
       return;
     }
+    var aLabel = teamRosterLabel("A", roundState.players);
+    var bLabel = teamRosterLabel("B", roundState.players);
+    var aScore = teamCombinedScore("A");
+    var bScore = teamCombinedScore("B");
     els.gameTeamsLabel.hidden = false;
-    els.gameTeamsLabel.textContent =
-      teamRosterLabel("A", roundState.players) +
-      " · " +
-      teamRosterLabel("B", roundState.players);
+    if (aScore && bScore) {
+      els.gameTeamsLabel.innerHTML =
+        '<span class="team-vs-side">' +
+        aLabel +
+        ' <strong>' +
+        aScore.text +
+        "</strong></span>" +
+        '<span class="team-vs-mid">vs</span>' +
+        '<span class="team-vs-side"><strong>' +
+        bScore.text +
+        "</strong> " +
+        bLabel +
+        "</span>";
+    } else {
+      els.gameTeamsLabel.textContent = aLabel + " vs " + bLabel;
+    }
   }
 
   function setPagerPage(page) {
@@ -905,14 +996,6 @@
       }
       btn.innerHTML = html;
       els.playersEditor.appendChild(btn);
-    });
-    els.mePlayerSelect.innerHTML = "";
-    draftPlayers.forEach(function (p) {
-      var opt = document.createElement("option");
-      opt.value = p.id;
-      opt.textContent = p.name || p.id;
-      if (p.id === roundState.mePlayerId) opt.selected = true;
-      els.mePlayerSelect.appendChild(opt);
     });
   }
 
@@ -1150,12 +1233,7 @@
     var wasNone = !wasMulti;
     roundState.gameType = type;
     roundState.players = draftPlayers;
-    var meOk = draftPlayers.some(function (p) {
-      return p.id === els.mePlayerSelect.value;
-    });
-    roundState.mePlayerId = meOk
-      ? els.mePlayerSelect.value
-      : draftPlayers[0].id;
+    roundState.mePlayerId = draftPlayers[0].id;
     pruneRoundScores(roundState.players);
     if (wasNone) {
       Object.keys(scores).forEach(function (h) {
@@ -1340,16 +1418,20 @@
     updatePlayGameActions();
     updateTeamsLabel();
 
-    var showTeams =
-      roundState.teamsEnabled &&
-      (roundState.teamRandom !== "end" || roundState.teamsDrawn);
+    var showTeams = teamsVisible();
+    var players = boardPlayers();
+    var aCount = players.filter(function (p) {
+      return p.team !== "B";
+    }).length;
+    var bCount = players.length - aCount;
 
-    var html = '<table class="game-table"><thead><tr><th>Hole</th>';
-    roundState.players.forEach(function (p) {
+    var html = '<table class="game-table' + (showTeams ? " has-teams" : "") + '"><thead><tr><th>Hole</th>';
+    players.forEach(function (p, index) {
       html +=
-        "<th>" +
+        '<th class="' +
+        teamColumnSep(p, index, players).trim() +
+        '">' +
         (p.name || p.id) +
-        (p.id === roundState.mePlayerId ? " *" : "") +
         "</th>";
     });
     html += "</tr></thead><tbody>";
@@ -1362,10 +1444,12 @@
         h.number +
         (hHam ? ' <span class="hammer-tag">×' + hHam.multiplier + "</span>" : "") +
         "</th>";
-      roundState.players.forEach(function (p) {
+      players.forEach(function (p, index) {
         var sc = getPlayerScore(p.id, h.number);
         var cell =
-          '<td class="score-cell" data-board-pid="' +
+          '<td class="score-cell' +
+          teamColumnSep(p, index, players) +
+          '" data-board-pid="' +
           p.id +
           '" data-board-hole="' +
           h.number +
@@ -1387,13 +1471,16 @@
       html += "</tr>";
     });
     html += '<tr class="game-total-row"><th>Tot</th>';
-    roundState.players.forEach(function (p) {
+    players.forEach(function (p, index) {
+      var sep = teamColumnSep(p, index, players);
       if (isQuota()) {
         var pts = playerQuotaTotal(p);
         var q = p.quota != null ? p.quota : 18;
         var diff = pts - q;
         html +=
-          "<td>" +
+          '<td class="' +
+          sep.trim() +
+          '">' +
           pts +
           "/" +
           q +
@@ -1403,47 +1490,38 @@
           ")</span></td>";
         return;
       }
-      var tot = 0;
-      var net = 0;
-      var n = 0;
-      course.holes.forEach(function (h) {
-        var sc = getPlayerScore(p.id, h.number);
-        if (sc != null) {
-          tot += sc;
-          net += netScoreFor(p, sc, h);
-          n += 1;
-        }
-      });
-      if (!n) html += "<td>—</td>";
+      var r = playerStrokeTotal(p);
+      if (!r.n) html += '<td class="' + sep.trim() + '">—</td>';
       else if (isCompetitive() && playerHcp(p))
-        html += "<td>" + tot + " / " + net + "</td>";
-      else html += "<td>" + tot + "</td>";
+        html +=
+          '<td class="' + sep.trim() + '">' + r.tot + " / " + r.net + "</td>";
+      else html += '<td class="' + sep.trim() + '">' + r.tot + "</td>";
     });
     html += "</tr>";
-    if (showTeams && isCompetitive() && !isQuota()) {
-      html += '<tr class="game-total-row"><th>Team</th>';
-      var teamTot = { A: 0, B: 0 };
-      var teamN = { A: 0, B: 0 };
-      roundState.players.forEach(function (p) {
-        var t = p.team === "B" ? "B" : "A";
-        course.holes.forEach(function (h) {
-          var sc = getPlayerScore(p.id, h.number);
-          if (sc != null) {
-            teamTot[t] +=
-              isCompetitive() && playerHcp(p) ? netScoreFor(p, sc, h) : sc;
-            teamN[t] += 1;
-          }
-        });
-      });
-      roundState.players.forEach(function (p) {
-        var t = p.team === "B" ? "B" : "A";
-        html +=
-          "<td>" +
-          (teamN[t]
-            ? teamRosterLabel(t, roundState.players) + " " + teamTot[t]
-            : "—") +
-          "</td>";
-      });
+    if (showTeams && aCount && bCount) {
+      var aScore = teamCombinedScore("A");
+      var bScore = teamCombinedScore("B");
+      html += '<tr class="team-match-row"><th>Team</th>';
+      html +=
+        '<td colspan="' +
+        aCount +
+        '" class="team-match-cell">' +
+        '<span class="team-match-names">' +
+        teamRosterLabel("A", roundState.players) +
+        "</span>" +
+        '<span class="team-match-score">' +
+        (aScore ? aScore.text : "—") +
+        "</span></td>";
+      html +=
+        '<td colspan="' +
+        bCount +
+        '" class="team-match-cell team-sep">' +
+        '<span class="team-match-names">' +
+        teamRosterLabel("B", roundState.players) +
+        "</span>" +
+        '<span class="team-match-score">' +
+        (bScore ? bScore.text : "—") +
+        "</span></td>";
       html += "</tr>";
     }
     html += "</tbody></table>";
@@ -1484,7 +1562,7 @@
     multiDraft = {};
     els.multiPadTitle.textContent = "Hole " + hole.number + " scores";
     els.multiScoreList.innerHTML = "";
-    roundState.players.forEach(function (p) {
+    boardPlayers().forEach(function (p) {
       var sc = getPlayerScore(p.id, hole.number);
       multiDraft[p.id] = sc != null ? String(sc) : "";
       var row = document.createElement("div");
